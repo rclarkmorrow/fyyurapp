@@ -1,7 +1,13 @@
+import re
 from datetime import datetime
 from flask_wtf import Form
-from wtforms import StringField, SelectField, SelectMultipleField, DateTimeField
-from wtforms.validators import DataRequired, AnyOf, URL
+from wtforms import (StringField, SelectField, SelectMultipleField,
+                     DateTimeField, BooleanField, TextAreaField,
+                     ValidationError)
+from wtforms.validators import DataRequired, AnyOf, URL, Optional
+
+
+# Forms
 
 class ShowForm(Form):
     artist_id = StringField(
@@ -13,10 +19,23 @@ class ShowForm(Form):
     start_time = DateTimeField(
         'start_time',
         validators=[DataRequired()],
-        default= datetime.today()
+        default=datetime.today()
     )
 
+
 class VenueForm(Form):
+    class Meta:
+        csrf = False
+
+    def validate_phone(form, field):
+        if (not re.search(r"^[0-9]{3}-[0-9]{3}-[0-9]{4}$", field.data)
+                and not re.search(r"^[0-9]{10}", field.data)):
+            raise ValidationError("Invalid phone number.")
+
+    def validate_seeking_description(form, field):
+        if form.seeking_talent.data is True and field.data == '':
+            raise ValidationError("Please enter details below.")
+
     name = StringField(
         'name', validators=[DataRequired()]
     )
@@ -83,10 +102,11 @@ class VenueForm(Form):
         'address', validators=[DataRequired()]
     )
     phone = StringField(
-        'phone'
+        'phone', validators=[Optional()]
     )
     image_link = StringField(
-        'image_link'
+        'image_link', validators=[DataRequired(), URL(
+                                  message='Please enter a valid URL')]
     )
     genres = SelectMultipleField(
         # TODO implement enum restriction
@@ -113,9 +133,22 @@ class VenueForm(Form):
             ('Other', 'Other'),
         ]
     )
-    facebook_link = StringField(
-        'facebook_link', validators=[URL()]
+    website = StringField(
+        'facebook_link', validators=[Optional(),
+                                     URL(message='Please enter a' +
+                                         ' valid facebook link')]
     )
+    facebook_link = StringField(
+        'facebook_link', validators=[Optional(),
+                                     URL(message='Please enter a valid URL')]
+    )
+    seeking_talent = BooleanField(
+        'seeking_talent'
+    )
+    seeking_description = TextAreaField(
+        'seeking_description'
+    )
+
 
 class ArtistForm(Form):
     name = StringField(
@@ -214,7 +247,7 @@ class ArtistForm(Form):
     )
     facebook_link = StringField(
         # TODO implement enum restriction
-        'facebook_link', validators=[URL()]
+        'facebook_link', validators=[URL(message='enter a valid URL')]
     )
 
 # TODO IMPLEMENT NEW ARTIST FORM AND NEW SHOW FORM

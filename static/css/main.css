@@ -209,3 +209,13 @@ h2.monospace {
 .subtitle {
   opacity: 0.5;
 }
+.small-checkbox {
+  height: 15px;
+  width: 15px;
+  vertical-align: text-bottom;
+}
+.description-input {
+   height: 150px;
+   width: 100%;
+   overflow: hidden;
+}

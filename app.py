@@ -1,11 +1,12 @@
-#----------------------------------------------------------------------------#
+"""--------------------------------------------------------------------------#
 # Imports
-#----------------------------------------------------------------------------#
-
+#--------------------------------------------------------------------------"""
+import sys
 import json
 import dateutil.parser
 import babel
-from flask import Flask, render_template, request, Response, flash, redirect, url_for
+from flask import (Flask, render_template, request, Response, flash,
+                   redirect, url_for)
 from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -48,7 +49,8 @@ class Venue(db.Model):
     seeking_description = db.Column(db.String(500))
     image_link = db.Column(db.String(500), nullable=False, default=defaultImg)
 
-    # TODO: implement any missing fields, as a database migration using Flask-Migrate
+    def __repr__(self):
+        return f"Name('{self.name}')"
 
 
 class Artist(db.Model):
@@ -227,17 +229,70 @@ def create_venue_form():
   form = VenueForm()
   return render_template('forms/new_venue.html', form=form)
 
+
 @app.route('/venues/create', methods=['POST'])
 def create_venue_submission():
+    form = VenueForm()
+    error= False
+    if not form.validate():
+        print("FAILED - Errors: ", form.errors)
+        return render_template('forms/new_venue.html', form=form)
+
+    print("IF TRIGGERED")
+    print (form.name.data)
+
+    try:
+        # request.form['name']
+
+        def formatPhone(formPhone):
+            if len(formPhone) == 10:
+                return (form.phone.data[:3] + "-" + form.phone.data[3:6] +
+                        "-" +  form.phone.data[6:])
+            else:
+                return form.phone.data
+
+        venue = Venue (
+                        name=form.name.data.strip(),
+                        genres=form.genres.data,
+                        city=form.city.data.strip(),
+                        state=form.state.data,
+                        address=form.address.data.strip(),
+                        phone=formatPhone(form.phone.data),
+                        image_link=form.image_link.data,
+                        facebook_link=form.facebook_link.data,
+                        website=form.website.data,
+                        seeking_talent=form.seeking_talent.data,
+                        seeking_description=form.seeking_talent.data
+        )
+
+        db.session.add(venue)
+        db.session.commit()
+
+    except: 
+        error = True
+        db.session.rollback()
+        print(sys.exc_info())
+    finally: 
+        db.session.close()
+    if error: 
+        flash('An error occurred. Venue ' + request.form['name']+ ' could not be listed.')
+        return render_template('forms/new_venue.html', form=form)
+
+    if not error: 
+        flash('Venue ' + request.form['name'] + ' was successfully listed!')
+    return render_template('pages/home.html')
+
   # TODO: insert form data as a new Venue record in the db, instead
   # TODO: modify data to be the data object returned from db insertion
 
+
+
   # on successful db insert, flash success
-  flash('Venue ' + request.form['name'] + ' was successfully listed!')
+    # flash('Venue ' + request.form['name'] + ' was successfully listed!')
   # TODO: on unsuccessful db insert, flash an error instead.
   # e.g., flash('An error occurred. Venue ' + data.name + ' could not be listed.')
   # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
-  return render_template('pages/home.html')
+    # return render_template('pages/home.html')
 
 @app.route('/venues/<venue_id>', methods=['DELETE'])
 def delete_venue(venue_id):
@@ -247,6 +302,7 @@ def delete_venue(venue_id):
   # BONUS CHALLENGE: Implement a button to delete a Venue on a Venue Page, have it so that
   # clicking that button delete it from the db then redirect the user to the homepage
   return None
+
 
 #  Artists
 #  ----------------------------------------------------------------
