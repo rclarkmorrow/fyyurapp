@@ -49,9 +49,6 @@ class Venue(db.Model):
     seeking_description = db.Column(db.String(500))
     image_link = db.Column(db.String(500), nullable=False, default=defaultImg)
 
-    def __repr__(self):
-        return f"Name('{self.name}')"
-
 
 class Artist(db.Model):
     __tablename__ = 'Artist'
@@ -69,9 +66,9 @@ class Artist(db.Model):
 
 # TODO Implement Show and Artist models, and complete all model relationships and properties, as a database migration.
 
-#----------------------------------------------------------------------------#
+"""--------------------------------------------------------------------------#
 # Filters.
-#----------------------------------------------------------------------------#
+#--------------------------------------------------------------------------"""
 
 def format_datetime(value, format='medium'):
   date = dateutil.parser.parse(value)
@@ -83,9 +80,9 @@ def format_datetime(value, format='medium'):
 
 app.jinja_env.filters['datetime'] = format_datetime
 
-#----------------------------------------------------------------------------#
+"""--------------------------------------------------------------------------#
 # Controllers.
-#----------------------------------------------------------------------------#
+#--------------------------------------------------------------------------"""
 
 @app.route('/')
 def index():
@@ -97,30 +94,36 @@ def index():
 
 @app.route('/venues')
 def venues():
-  # TODO: replace with real venues data.
-  #       num_shows should be aggregated based on number of upcoming shows per venue.
-  data=[{
-    "city": "San Francisco",
-    "state": "CA",
-    "venues": [{
-      "id": 1,
-      "name": "The Musical Hop",
-      "num_upcoming_shows": 0,
-    }, {
-      "id": 3,
-      "name": "Park Square Live Music & Coffee",
-      "num_upcoming_shows": 1,
-    }]
-  }, {
-    "city": "New York",
-    "state": "NY",
-    "venues": [{
-      "id": 2,
-      "name": "The Dueling Pianos Bar",
-      "num_upcoming_shows": 0,
-    }]
-  }]
-  return render_template('pages/venues.html', areas=data);
+    #       num_shows should be aggregated based on number of upcoming shows per venue.
+
+    venueQuery = db.session.query(Venue.id, Venue.name, Venue.city, Venue.state).all()
+    data = []
+    def sortVenues (venueQuery):
+        venueCities = []
+        sortedData = []
+        for item in venueQuery:
+            cityState = (item[2], item[3])
+            if cityState not in venueCities:
+                print ('city added')
+                venueCities.append(cityState)
+        for city in venueCities:
+            cityVenues = []
+            for item in venueQuery:
+                if (item[2], item[3]) == city:
+                  cityVenues.append({
+                                      "id": item[0],
+                                      "name": item[1],
+                  })
+            sortedData.append({
+                           "city": city[0],
+                           "state": city[1],
+                           "venues": cityVenues
+            })
+        return sortedData
+
+    data = (sortVenues(venueQuery))
+
+    return render_template('pages/venues.html', areas=data);
 
 @app.route('/venues/search', methods=['POST'])
 def search_venues():
@@ -268,17 +271,17 @@ def create_venue_submission():
         db.session.add(venue)
         db.session.commit()
 
-    except: 
+    except:
         error = True
         db.session.rollback()
         print(sys.exc_info())
-    finally: 
+    finally:
         db.session.close()
-    if error: 
+    if error:
         flash('An error occurred. Venue ' + request.form['name']+ ' could not be listed.')
         return render_template('forms/new_venue.html', form=form)
 
-    if not error: 
+    if not error:
         flash('Venue ' + request.form['name'] + ' was successfully listed!')
     return render_template('pages/home.html')
 
