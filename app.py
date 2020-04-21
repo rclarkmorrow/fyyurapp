@@ -219,6 +219,8 @@ def create_venue_submission():
             if len(formPhone) == 10:
                 return (form.phone.data[:3] + "-" + form.phone.data[3:6] +
                         "-" +  form.phone.data[6:])
+            elif len(formPhone) < 10 or len(formPhone) > 12:
+                raise Exception('Phone Error')
             else:
                 return form.phone.data
 

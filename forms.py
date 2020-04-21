@@ -29,12 +29,13 @@ class VenueForm(Form):
 
     def validate_phone(form, field):
         if (not re.search(r"^[0-9]{3}-[0-9]{3}-[0-9]{4}$", field.data)
-                and not re.search(r"^[0-9]{10}", field.data)):
-            raise ValidationError("Invalid phone number.")
+                and not re.search(r"^[0-9]{10}$", field.data)):
+            raise ValidationError('Please enter a valid US phone number' +
+                                  '<br />("123-456-7890" or "1234567890")')
 
     def validate_seeking_description(form, field):
         if form.seeking_talent.data is True and field.data == '':
-            raise ValidationError("Please enter details below.")
+            raise ValidationError('Please enter details below.')
 
     name = StringField(
         'name', validators=[DataRequired()]
@@ -106,7 +107,9 @@ class VenueForm(Form):
     )
     image_link = StringField(
         'image_link', validators=[DataRequired(), URL(
-                                  message='Please enter a valid URL')]
+                                  message='Please enter a valid URL.' +
+                                  '<br />("http://" or "https://" ' +
+                                  'is required)')]
     )
     genres = SelectMultipleField(
         # TODO implement enum restriction
@@ -134,13 +137,17 @@ class VenueForm(Form):
         ]
     )
     website = StringField(
-        'facebook_link', validators=[Optional(),
-                                     URL(message='Please enter a' +
-                                         ' valid facebook link')]
+        'website', validators=[Optional(),
+                               URL(message='Please enter a valid URL' +
+                                   '<br />("http://" or "https://" ' +
+                                   'is required)')]
     )
     facebook_link = StringField(
         'facebook_link', validators=[Optional(),
-                                     URL(message='Please enter a valid URL')]
+                                     URL(message='Please enter a' +
+                                         ' valid facebook link.' +
+                                         '<br />("http://" or "https://" ' +
+                                         'is required)')]
     )
     seeking_talent = BooleanField(
         'seeking_talent'
