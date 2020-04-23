@@ -6,7 +6,7 @@ import json
 import dateutil.parser
 import babel
 from flask import (Flask, render_template, request, Response, flash,
-                   redirect, url_for)
+                   redirect, url_for, jsonify)
 from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -102,36 +102,35 @@ def venues():
 
     #       num_shows should be aggregated based on number of upcoming shows per venue.
 
-    venueQuery = db.session.query(Venue.id, Venue.name, Venue.city, Venue.state).all()
+    venueQuery = db.session.query(Venue.id, Venue.name, 
+                                  Venue.city, Venue.state).all()
 
-    data = []
-
-    def sortVenues (venueQuery):
-        venueCities = []
-        sortedData = []
-        for item in venueQuery:
-            cityState = (item[2], item[3])
-            if cityState not in venueCities:
-                print ('city added')
-                venueCities.append(cityState)
-        for city in venueCities:
-            cityVenues = []
-            for item in venueQuery:
-                if (item[2], item[3]) == city:
-                  cityVenues.append({
-                                      "id": item[0],
-                                      "name": item[1],
-                  })
-            sortedData.append({
-                           "city": city[0],
-                           "state": city[1],
-                           "venues": cityVenues
+    def sortVenues(venueQuery):
+        venue_cities = []
+        sorted_venues = []
+        for record in venueQuery:
+            city_state = (record.city, record.state)
+            print(record.city)
+            print(record.state)
+            if city_state not in venue_cities:
+                print('city added')
+                venue_cities.append(city_state)
+        for city in venue_cities:
+            city_venues = []
+            for record in venueQuery:
+                if (record.city, record.state) == city:
+                    city_venues.append({
+                                       "id": record.id,
+                                       "name": record.name,
+                    })
+            sorted_venues.append({
+                               "city": city[0],
+                               "state": city[1],
+                               "venues": city_venues
             })
-        return sortedData
+        return sorted_venues
 
-    data = (sortVenues(venueQuery))
-
-    return render_template('pages/venues.html', areas=data);
+    return render_template('pages/venues.html', areas=(sortVenues(venueQuery)))
 
 @app.route('/venues/search', methods=['POST'])
 def search_venues():
@@ -148,14 +147,32 @@ def search_venues():
   }
   return render_template('pages/search_venues.html', results=response, search_term=request.form.get('search_term', ''))
 
+
 @app.route('/venues/<int:venue_id>')
 def show_venue(venue_id):
-  # shows the venue page with the given venue_id
+    # shows the venue page with the given venue_id
 
-    def venueData (venue_id):
-        thisVenue = Venue.query.get(venue_id)
-        thisVenue.genres = thisVenue.genres.split(',')
-        return(thisVenue)
+    error = False
+
+    try:
+        def venueData(venue_id):
+            this_venue = Venue.query.get(venue_id)
+            this_venue.genres = this_venue.genres.split(',')
+            return(this_venue)
+
+        this_venue = venueData(venue_id)
+    except:
+        error = True
+        print(sys.exc_info())
+    finally:
+        db.session.close()
+    if error is True:
+        flash('An error occurred. Venue with ID ' + str(venue_id) +
+              ' could not be displayed.')
+        return redirect(url_for('venues'))
+    else:
+        return render_template('pages/show_venue.html',
+                               venue=this_venue)
 
     # data3={
     #   "id": 3,
@@ -195,7 +212,6 @@ def show_venue(venue_id):
     #   "upcoming_shows_count": 1,
     # }
 
-    return render_template('pages/show_venue.html', venue=venueData(venue_id))
 
 #  Create Venue
 #  ----------------------------------------------------------------
@@ -210,27 +226,27 @@ def create_venue_form():
 def create_venue_submission():
     form = VenueForm()
     error= False
+    
     if not form.validate():
-        print("FAILED - Errors: ", form.errors)
         return render_template('forms/new_venue.html', form=form)
 
     try:
-        def formatPhone(formPhone):
-            if len(formPhone) == 10:
-                return (form.phone.data[:3] + "-" + form.phone.data[3:6] +
-                        "-" +  form.phone.data[6:])
-            elif len(formPhone) < 10 or len(formPhone) > 12:
+        def format_phone(form_phone):
+            if len(form_phone) == 10:
+                return (form.phone.data[:3] + '-' + form.phone.data[3:6] +
+                        '-' + form.phone.data[6:])
+            elif len(form_phone) < 10 or len(form_phone) > 12:
                 raise Exception('Phone Error')
             else:
                 return form.phone.data
 
-        venue = Venue (
+        this_venue = Venue (
                         name=form.name.data.strip(),
                         genres=','.join(form.genres.data),
                         city=form.city.data.strip(),
                         state=form.state.data,
                         address=form.address.data.strip(),
-                        phone=formatPhone(form.phone.data),
+                        phone=format_phone(form.phone.data),
                         image_link=form.image_link.data,
                         facebook_link=form.facebook_link.data,
                         website=form.website.data,
@@ -238,7 +254,7 @@ def create_venue_submission():
                         seeking_description=form.seeking_description.data
         )
 
-        db.session.add(venue)
+        db.session.add(this_venue)
         db.session.commit()
 
     except:
@@ -250,19 +266,39 @@ def create_venue_submission():
     if error:
         flash('An error occurred. Venue ' + request.form['name']+ ' could not be listed.')
         return render_template('forms/new_venue.html', form=form)
-
-    if not error:
+    else:
         flash('Venue ' + request.form['name'] + ' was successfully listed!')
     return render_template('pages/home.html')
 
+
 @app.route('/venues/<venue_id>', methods=['DELETE'])
 def delete_venue(venue_id):
-  # TODO: Complete this endpoint for taking a venue_id, and using
-  # SQLAlchemy ORM to delete a record. Handle cases where the session commit could fail.
 
-  # BONUS CHALLENGE: Implement a button to delete a Venue on a Venue Page, have it so that
-  # clicking that button delete it from the db then redirect the user to the homepage
-  return None
+    error = False
+
+    try:
+        this_venue = Venue.query.get(venue_id)
+        this_venue_name = this_venue.name
+        db.session.delete(this_venue)
+        db.session.commit()
+    except:
+        error = True
+        db.session.rollback()
+        print(sys.exc_info())
+    finally:
+        db.session.close()
+
+    if error:
+        flash('An error occurred. Venue ' + this_venue.name +
+              ' could not be deleted.')
+        return jsonify(success=False), 500
+    else:
+        flash('Venue ' + this_venue.name + ' was successfully deleted!')
+
+    return jsonify(success=True), 200
+
+
+    # return render_template('pages/home.html')
 
 
 #  Artists
@@ -272,8 +308,7 @@ def artists():
   # TODO: replace with real data returned from querying the database
   data=[{
     "id": 4,
-    "name": "Guns N Petals",
-  }, {
+    "name": "Guns N Petals",  }, {
     "id": 5,
     "name": "Matt Quevedo",
   }, {

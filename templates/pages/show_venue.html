@@ -7,7 +7,9 @@
 			{{ venue.name }}
 		</h1>
 		<p class="subtitle">
-			ID: {{ venue.id }}
+			<span>ID: {{ venue.id }}</span>
+				<button id="edit-venue" data-id="{{ venue.id }}" ><i class="fas fa-edit"></i></button>
+				<button id="delete-venue" data-id="{{ venue.id }}" data-name="{{ venue.name }}"><i class="fas fa-trash"></i></button>
 		</p>
 		<div class="genres">
 			{% for genre in venue.genres %}
@@ -75,5 +77,28 @@
 	</div>
 </section>
 
-{% endblock %}
+<script>
+	document.getElementById("delete-venue").onclick = function(deleteVenue) {
+		const VENUE_ID = deleteVenue.currentTarget.dataset['id'];
+		fetch( '/venues/' + VENUE_ID, {
+			method: 'DELETE',
+		}).then( response => {
+			if ( response.ok ) {
+				window.location.href='/venues';
+			}
+			else {
+				console.log ('there was an error on else');
+				window.location.href=`/venues/${VENUE_ID}`;
+			}
+		}).catch( error => {
+			window.location.href=`/`;
+		});
+	}
+	
+	document.getElementById("edit-venue").onclick = function(editVenue) {
+		const VENUE_ID = editVenue.currentTarget.dataset['id'];
+		window.location.href = `/venues/${VENUE_ID}/edit`;
+	}
+</script>
 
+{% endblock %}
