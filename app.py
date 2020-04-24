@@ -88,49 +88,105 @@ app.jinja_env.filters['datetime'] = format_datetime
 # Controllers.
 #--------------------------------------------------------------------------"""
 
+#  Functions
+#  ----------------------------------------------------------------
+
+
+#  This function validates inputed phone numbers and corrects them to
+#  an 123-456-7890 format if entered as all digits.
+def format_phone(form_phone):
+    if len(form_phone) == 10:
+        return (form_phone[:3] + '-' + form_phone[3:6] +
+                '-' + form_phone[6:])
+    elif len(form_phone) < 10 or len(form_phone) > 12:
+        raise Exception('Phone Error')
+    else:
+        return form_phone
+
+
+#  This function returns a single record in Dict format and checks on whether
+#  it has a genres attribut that needs to be split into a list.
+def getRecordAsDict(table, record_id):
+    this_record = table.query.get(record_id)
+    if hasattr(this_record, 'genres'):
+        this_record.genres = this_record.genres.split(',')
+    record_as_dict = this_record.__dict__
+    return(record_as_dict)
+
+
+
+#  Main
+#  ----------------------------------------------------------------
 
 @app.route('/')
 def index():
     return render_template('pages/home.html')
 
-
+#  ----------------------------------------------------------------
 #  Venues
 #  ----------------------------------------------------------------
 
+
+#  List Venues
+#  ----------------------------------------------------------------
+
+
 @app.route('/venues')
 def venues():
+    error = False
+    #  num_shows should be aggregated based on number of upcoming
+    # shows per venue.
+    try:
+        venues_query = Venue.query.with_entities(Venue.id, Venue.name,
+                                                 Venue.city, Venue.state).all()
 
-    #       num_shows should be aggregated based on number of upcoming shows per venue.
+        def sortVenues(venues_query):
+            venue_cities = []
+            sorted_venues = []
 
-    venueQuery = db.session.query(Venue.id, Venue.name, 
-                                  Venue.city, Venue.state).all()
+            for record in venues_query:
+                city_state = (record.city, record.state)
+                if city_state not in venue_cities:
+                    venue_cities.append(city_state)
 
-    def sortVenues(venueQuery):
-        venue_cities = []
-        sorted_venues = []
-        for record in venueQuery:
-            city_state = (record.city, record.state)
-            print(record.city)
-            print(record.state)
-            if city_state not in venue_cities:
-                print('city added')
-                venue_cities.append(city_state)
-        for city in venue_cities:
-            city_venues = []
-            for record in venueQuery:
-                if (record.city, record.state) == city:
-                    city_venues.append({
-                                       "id": record.id,
-                                       "name": record.name,
-                    })
-            sorted_venues.append({
-                               "city": city[0],
-                               "state": city[1],
-                               "venues": city_venues
-            })
-        return sorted_venues
+            for city in venue_cities:
+                city_venues = []
 
-    return render_template('pages/venues.html', areas=(sortVenues(venueQuery)))
+                for record in venues_query:
+
+                    if (record.city, record.state) == city:
+                        city_venues.append({
+                                          "id": record.id,
+                                          "name": record.name,
+                        })
+
+                sorted_venues.append({
+                                  "city": city[0],
+                                  "state": city[1],
+                                  "venues": city_venues
+                })
+            return sorted_venues
+
+        venue_list = sortVenues(venues_query)
+    except:
+        error = True
+        print(sys.exc_info())
+    finally:
+        db.session.close()
+
+    if error:
+        flash('An error occured. Venues cannot be shown.')
+        return redirect(url_for('index'))
+    elif venue_list == []:
+        flash('The Venues table in the database is empty.')
+        return redirect(url_for('index'))
+    else:
+        return render_template('pages/venues.html', areas=venue_list)
+
+
+#  Search Venues
+#  ----------------------------------------------------------------
+ 
 
 @app.route('/venues/search', methods=['POST'])
 def search_venues():
@@ -153,14 +209,8 @@ def show_venue(venue_id):
     # shows the venue page with the given venue_id
 
     error = False
-
     try:
-        def venueData(venue_id):
-            this_venue = Venue.query.get(venue_id)
-            this_venue.genres = this_venue.genres.split(',')
-            return(this_venue)
-
-        this_venue = venueData(venue_id)
+        this_venue = getRecordAsDict(Venue, venue_id)
     except:
         error = True
         print(sys.exc_info())
@@ -174,18 +224,7 @@ def show_venue(venue_id):
         return render_template('pages/show_venue.html',
                                venue=this_venue)
 
-    # data3={
-    #   "id": 3,
-    #   "name": "Park Square Live Music & Coffee",
-    #   "genres": ["Rock n Roll", "Jazz", "Classical", "Folk"],
-    #   "address": "34 Whiskey Moore Ave",
-    #   "city": "San Francisco",
-    #   "state": "CA",
-    #   "phone": "415-000-1234",
-    #   "website": "https://www.parksquarelivemusicandcoffee.com",
-    #   "facebook_link": "https://www.facebook.com/ParkSquareLiveMusicAndCoffee",
-    #   "seeking_talent": False,
-    #   "image_link": "https://images.unsplash.com/photo-1485686531765-ba63b07845a7?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=747&q=80",
+
     #   "past_shows": [{
     #     "artist_id": 5,
     #     "artist_name": "Matt Quevedo",
@@ -202,19 +241,12 @@ def show_venue(venue_id):
     #     "artist_name": "The Wild Sax Band",
     #     "artist_image_link": "https://images.unsplash.com/photo-1558369981-f9ca78462e61?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=794&q=80",
     #     "start_time": "2035-04-08T20:00:00.000Z"
-    #   }, {
-    #     "artist_id": 6,
-    #     "artist_name": "The Wild Sax Band",
-    #     "artist_image_link": "https://images.unsplash.com/photo-1558369981-f9ca78462e61?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=794&q=80",
-    #     "start_time": "2035-04-15T20:00:00.000Z"
-    #   }],
-    #   "past_shows_count": 1,
-    #   "upcoming_shows_count": 1,
-    # }
+    #   }
 
 
 #  Create Venue
 #  ----------------------------------------------------------------
+
 
 @app.route('/venues/create', methods=['GET'])
 def create_venue_form():
@@ -225,22 +257,13 @@ def create_venue_form():
 @app.route('/venues/create', methods=['POST'])
 def create_venue_submission():
     form = VenueForm()
-    error= False
-    
-    if not form.validate():
-        return render_template('forms/new_venue.html', form=form)
+    error = False
 
     try:
-        def format_phone(form_phone):
-            if len(form_phone) == 10:
-                return (form.phone.data[:3] + '-' + form.phone.data[3:6] +
-                        '-' + form.phone.data[6:])
-            elif len(form_phone) < 10 or len(form_phone) > 12:
-                raise Exception('Phone Error')
-            else:
-                return form.phone.data
+        if not form.validate():
+            return render_template('forms/new_venue.html', form=form)
 
-        this_venue = Venue (
+        this_venue = Venue(
                         name=form.name.data.strip(),
                         genres=','.join(form.genres.data),
                         city=form.city.data.strip(),
@@ -256,7 +279,6 @@ def create_venue_submission():
 
         db.session.add(this_venue)
         db.session.commit()
-
     except:
         error = True
         db.session.rollback()
@@ -271,9 +293,80 @@ def create_venue_submission():
     return render_template('pages/home.html')
 
 
+#  Edit Venue
+#  ----------------------------------------------------------------
+
+
+@app.route('/venues/<int:venue_id>/edit', methods=['GET'])
+def edit_venue(venue_id):
+
+    form = VenueForm()
+    error = False
+
+    try:
+        this_venue = getRecordAsDict(Venue, venue_id)
+    except:
+        error = True
+        print(sys.exc_info())
+    finally:
+        db.session.close()
+    if error is True:
+        flash('An error occurred. Venue with ID ' + str(venue_id) +
+              ' could not be edited.')
+        return redirect(url_for('show_venue', venue_id=venue_id))
+    else:
+        form = VenueForm(data=this_venue)
+        return render_template('forms/edit_venue.html', form=form,
+                               venue=this_venue)
+
+
+@app.route('/venues/<int:venue_id>/edit', methods=['POST'])
+def edit_venue_submission(venue_id):
+    form = VenueForm()
+    error = False
+
+    try:
+        this_venue = Venue.query.get(venue_id)
+
+        if not form.validate():
+            return render_template('forms/edit_venue.html', form=form,
+                                   venue=this_venue)
+
+        this_venue.name = form.name.data
+        this_venue.genres = ','.join(form.genres.data)
+        this_venue.city = form.city.data.strip()
+        this_venue.state = form.state.data
+        this_venue.address = form.address.data.strip()
+        this_venue.phone = format_phone(form.phone.data)
+        this_venue.image_link = form.image_link.data
+        this_venue.facebook_link = form.facebook_link.data
+        this_venue.website = form.website.data
+        this_venue.seeking_talent = form.seeking_talent.data
+        this_seeking_description = form.seeking_description.data
+
+        db.session.add(this_venue)
+        db.session.commit()
+
+    except:
+        error = True
+        db.session.rollback()
+        print(sys.exc_info())
+    finally:
+        db.session.close()
+    if error:
+        flash('An error occurred. Venue ' + request.form['name']+ ' could not be updated.')
+        return render_template('forms/edit_venue.html', form=form)
+    else:
+        flash('Venue ' + request.form['name'] + ' was successfully edited!')
+    return redirect(url_for('show_venue', venue_id=venue_id))
+
+
+#  Delete Venue
+#  ----------------------------------------------------------------
+
+
 @app.route('/venues/<venue_id>', methods=['DELETE'])
 def delete_venue(venue_id):
-
     error = False
 
     try:
@@ -298,11 +391,11 @@ def delete_venue(venue_id):
     return jsonify(success=True), 200
 
 
-    # return render_template('pages/home.html')
-
-
+#  ----------------------------------------------------------------
 #  Artists
 #  ----------------------------------------------------------------
+
+
 @app.route('/artists')
 def artists():
   # TODO: replace with real data returned from querying the database
@@ -410,6 +503,7 @@ def show_artist(artist_id):
   data = list(filter(lambda d: d['id'] == artist_id, [data1, data2, data3]))[0]
   return render_template('pages/show_artist.html', artist=data)
 
+
 #  Update
 #  ----------------------------------------------------------------
 @app.route('/artists/<int:artist_id>/edit', methods=['GET'])
@@ -438,31 +532,10 @@ def edit_artist_submission(artist_id):
 
   return redirect(url_for('show_artist', artist_id=artist_id))
 
-@app.route('/venues/<int:venue_id>/edit', methods=['GET'])
-def edit_venue(venue_id):
-  form = VenueForm()
-  venue={
-    "id": 1,
-    "name": "The Musical Hop",
-    "genres": ["Jazz", "Reggae", "Swing", "Classical", "Folk"],
-    "address": "1015 Folsom Street",
-    "city": "San Francisco",
-    "state": "CA",
-    "phone": "123-123-1234",
-    "website": "https://www.themusicalhop.com",
-    "facebook_link": "https://www.facebook.com/TheMusicalHop",
-    "seeking_talent": True,
-    "seeking_description": "We are on the lookout for a local artist to play every two weeks. Please call us.",
-    "image_link": "https://images.unsplash.com/photo-1543900694-133f37abaaa5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=400&q=60"
-  }
-  # TODO: populate form with values from venue with ID <venue_id>
-  return render_template('forms/edit_venue.html', form=form, venue=venue)
 
-@app.route('/venues/<int:venue_id>/edit', methods=['POST'])
-def edit_venue_submission(venue_id):
-  # TODO: take values from the form submitted, and update existing
-  # venue record with ID <venue_id> using the new attributes
-  return redirect(url_for('show_venue', venue_id=venue_id))
+
+
+
 
 #  Create Artist
 #  ----------------------------------------------------------------

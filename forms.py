@@ -4,7 +4,7 @@ from flask_wtf import Form
 from wtforms import (StringField, SelectField, SelectMultipleField,
                      DateTimeField, BooleanField, TextAreaField,
                      ValidationError)
-from wtforms.validators import DataRequired, AnyOf, URL, Optional
+from wtforms.validators import DataRequired, AnyOf, URL, Optional, Length
 
 
 # Forms
@@ -38,10 +38,16 @@ class VenueForm(Form):
             raise ValidationError('Please enter details below.')
 
     name = StringField(
-        'name', validators=[DataRequired()]
+        'name', validators=[DataRequired(),
+                            Length(max=120,
+                                   message='Can\'t be more than 120 ' +
+                                   'characters')]
     )
     city = StringField(
-        'city', validators=[DataRequired()]
+        'city', validators=[DataRequired(),
+                            Length(max=120,
+                                   message='Can\'t be more than 120 ' +
+                                   'characters')]
     )
     state = SelectField(
         'state', validators=[DataRequired()],
@@ -100,16 +106,22 @@ class VenueForm(Form):
         ]
     )
     address = StringField(
-        'address', validators=[DataRequired()]
+        'address', validators=[DataRequired(),
+                               Length(max=120,
+                                      message='Can\'t be more than 120 ' +
+                                      'characters.')]
     )
     phone = StringField(
         'phone', validators=[Optional()]
     )
     image_link = StringField(
-        'image_link', validators=[DataRequired(), URL(
-                                  message='Please enter a valid URL.' +
-                                  '<br />("http://" or "https://" ' +
-                                  'is required)')]
+        'image_link', validators=[DataRequired(),
+                                  URL(message='Please enter a valid URL.' +
+                                      '<br />("http://" or "https://" is ' +
+                                      'required)'),
+                                  Length(max=500,
+                                         message='<br />Can\'t be more than ' +
+                                         '500 characters.')]
     )
     genres = SelectMultipleField(
         # TODO implement enum restriction
@@ -140,20 +152,29 @@ class VenueForm(Form):
         'website', validators=[Optional(),
                                URL(message='Please enter a valid URL' +
                                    '<br />("http://" or "https://" ' +
-                                   'is required)')]
+                                   'is required)'),
+                               Length(max=120,
+                                      message='<br />Can\'t be more than ' +
+                                      '120 characters.')]
     )
     facebook_link = StringField(
         'facebook_link', validators=[Optional(),
                                      URL(message='Please enter a' +
                                          ' valid facebook link.' +
                                          '<br />("http://" or "https://" ' +
-                                         'is required)')]
+                                         'is required)'),
+                                     Length(max=120,
+                                            message='<br />Can\'t be more ' +
+                                            'than 120 characters.')]
     )
     seeking_talent = BooleanField(
         'seeking_talent'
     )
     seeking_description = TextAreaField(
-        'seeking_description'
+        'seeking_description', validators=[Optional(),
+                                           Length(max=500,
+                                                  message='Can\'t be more ' +
+                                                  'than 500 characters.')]
     )
 
 

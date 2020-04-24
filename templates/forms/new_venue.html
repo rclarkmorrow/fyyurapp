@@ -10,7 +10,7 @@
     <div class="form-group">
       <label for="name">Name</label>
       {{ form.name(class_ = 'form-control', autofocus = true) }}
-      {% if form.name.errors%}
+      {% if form.name.errors %}
       <span class="error" style="color:red;">{% for error in form.name.errors %}{{error|safe}}{% endfor %}</span>
       {% endif %}
     </div>
@@ -25,12 +25,22 @@
           {{ form.state(class_ = 'form-control', placeholder='State', autofocus = true) }}
         </div>
       </div>
+      {% if form.city.errors %}
+      <span class="error" style="color:red;">{% for error in form.city.errors %}{{error|safe}}{% endfor %}</span>
+      {% endif %}
+      {% if form.state.errors %}
+      <span class="error" style="color:red;">{% for error in form.state.errors %}{{error|safe}}{% endfor %}</span>
+      {% endif %}
     </div>
 
     <div class="form-group">
       <label for="address">Address</label>
       {{ form.address(class_ = 'form-control', autofocus = true) }}
+      {% if form.address.errors %}
+      <span class="error" style="color:red;">{% for error in form.address.errors %}{{error|safe}}{% endfor %}</span>
+      {% endif %}
     </div>
+
     <div class="form-group">
       <label for="phone">Phone</label>
       {{ form.phone(class_ = 'form-control', placeholder='xxx-xxx-xxxx', autofocus = true) }}
@@ -42,7 +52,7 @@
     <div class="form-group">
       <label for="image_link">Enter a link to your profile image</label>
       {{ form.image_link(class_ = 'form-control', placeholder='http//www.example.com/img.jpg', autofocus = true) }}
-      {% if form.image_link.errors%}
+      {% if form.image_link.errors %}
       <span class="error" style="color:red;">{% for error in form.image_link.errors %}{{error|safe}}{% endfor %}</span>
       {% endif %} 
     </div>
@@ -50,13 +60,16 @@
     <div class="form-group">
       <label for="genres">Genres</label>
       <small>Ctrl+Click to select multiple</small>
+      {% if form.genres.errors %}
+      <p><span class="error" style="color:red;">{% for error in form.genres.errors %}{{error|safe}}{% endfor %}</span></p>
+      {% endif %}
       {{ form.genres(class_ = 'form-control', placeholder='Genres, separated by commas', autofocus = true) }}
     </div>
 
     <div class="form-group">
       <label for="website">Website</label>
       {{ form.website(class_ = 'form-control', placeholder='http://www.example.com', autofocus = true) }}
-      {% if form.website.errors%}
+      {% if form.website.errors %}
       <span class="error" style="color:red;">{% for error in form.website.errors %}{{error|safe}}{% endfor %}</span>
       {% endif %}
     </div>
@@ -64,7 +77,7 @@
     <div class="form-group">
       <label for="facebook_link">Facebook Link</label>
       {{ form.facebook_link(class_ = 'form-control', placeholder='http://www.facebook.com/venuename', autofocus = true) }}
-      {% if form.facebook_link.errors%}
+      {% if form.facebook_link.errors %}
       <span class="error" style="color:red;">{% for error in form.facebook_link.errors %}{{error|safe}}{% endfor %}</span>
       {% endif %}
     </div>
@@ -74,13 +87,13 @@
         <span style="margin-right: 5px;">Are you booking new artists?</span>
         {{ form.seeking_talent(class_ = 'form-control', class = 'small-checkbox', autofocus = true) }}
       </label>
-      {% if form.seeking_description.errors%}
+      {% if form.seeking_description.errors %}
       <p><span class="error" style="color:red;">{% for error in form.seeking_description.errors %}{{error|safe}}{% endfor %}</span></p>
       {% endif %}
       <div>
         {{ form.seeking_description(class_ = 'form-control', class = 'description-input', placeholder='Tell the world what you want in an artist and how to get in touch...', autofocus = true) }}
       </div>
-      </div>
+    </div>
 
     <p><input type="submit" value="Create Venue" class="btn btn-primary btn-lg btn-block"></p>
 
