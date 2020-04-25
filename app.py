@@ -141,6 +141,7 @@ def venues():
     error = False
     #  num_shows should be aggregated based on number of upcoming
     # shows per venue.
+
     try:
         venues_query = Venue.query.with_entities(Venue.id, Venue.name,
                                                  Venue.city, Venue.state).all()
@@ -351,7 +352,7 @@ def edit_venue_submission(venue_id):
         this_venue.facebook_link = form.facebook_link.data
         this_venue.website = form.website.data
         this_venue.seeking_talent = form.seeking_talent.data
-        this_seeking_description = form.seeking_description.data
+        this_venue.seeking_description = form.seeking_description.data
 
         db.session.add(this_venue)
         db.session.commit()
@@ -410,17 +411,37 @@ def delete_venue(venue_id):
 #  ----------------------------------------------------------------
 @app.route('/artists')
 def artists():
-  # TODO: replace with real data returned from querying the database
-  data=[{
-    "id": 4,
-    "name": "Guns N Petals",  }, {
-    "id": 5,
-    "name": "Matt Quevedo",
-  }, {
-    "id": 6,
-    "name": "The Wild Sax Band",
-  }]
-  return render_template('pages/artists.html', artists=data)
+    error = False
+
+    try:
+        artists_query = Artist.query.with_entities(Artist.id,
+                                                   Artist.name).all()
+
+        def listArtists(artists_query):
+            artist_list = []
+
+            for record in artists_query:
+                artist_list.append({
+                  "id": record.id,
+                  "name": record.name,
+                })
+            return artist_list
+
+        artist_list = listArtists(artists_query)
+    except:
+        error = True
+        print(sys.exc_info())
+    finally:
+        db.session.close()
+
+    if error:
+        flash('An error occured. Artists cannot be shown.')
+        return redirect(url_for('index'))
+    elif artist_list == []:
+        flash('The Artist table in the database is empty.')
+        return redirect(url_for('index'))
+    else:
+        return render_template('pages/artists.html', artists=artist_list)
 
 
 #  Search Artists
