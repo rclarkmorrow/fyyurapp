@@ -53,16 +53,20 @@ class Venue(db.Model):
 class Artist(db.Model):
     __tablename__ = 'Artist'
 
+    defaultImg = "https://placekitten.com/2000/2000"
+
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
+    name = db.Column(db.String(120), nullable=False, unique=True)
+    genres = db.Column(db.String)
     city = db.Column(db.String(120))
     state = db.Column(db.String(120))
     phone = db.Column(db.String(120))
-    genres = db.Column(db.String(120))
-    image_link = db.Column(db.String(500))
+    website = db.Column(db.String(120))
     facebook_link = db.Column(db.String(120))
+    seeking_talent = db.Column(db.Boolean, nullable=False, server_default='f')
+    seeking_description = db.Column(db.String(500))
+    image_link = db.Column(db.String(500), nullable=False, default=defaultImg)
 
-    # TODO: implement any missing fields, as a database migration using Flask-Migrate
 
 # TODO Implement Show and Artist models, and complete all model relationships and properties, as a database migration.
 
@@ -98,7 +102,8 @@ def format_phone(form_phone):
     if len(form_phone) == 10:
         return (form_phone[:3] + '-' + form_phone[3:6] +
                 '-' + form_phone[6:])
-    elif len(form_phone) < 10 or len(form_phone) > 12:
+    elif ((len(form_phone) < 10 and len(form_phone) > 0) or 
+          len(form_phone) > 12):
         raise Exception('Phone Error')
     else:
         return form_phone
@@ -114,13 +119,13 @@ def getRecordAsDict(table, record_id):
     return(record_as_dict)
 
 
-
 #  Main
 #  ----------------------------------------------------------------
 
 @app.route('/')
 def index():
     return render_template('pages/home.html')
+
 
 #  ----------------------------------------------------------------
 #  Venues
@@ -186,7 +191,7 @@ def venues():
 
 #  Search Venues
 #  ----------------------------------------------------------------
- 
+
 
 @app.route('/venues/search', methods=['POST'])
 def search_venues():
@@ -202,6 +207,10 @@ def search_venues():
     }]
   }
   return render_template('pages/search_venues.html', results=response, search_term=request.form.get('search_term', ''))
+
+
+#  Show Venue
+#  ----------------------------------------------------------------
 
 
 @app.route('/venues/<int:venue_id>')
@@ -223,7 +232,6 @@ def show_venue(venue_id):
     else:
         return render_template('pages/show_venue.html',
                                venue=this_venue)
-
 
     #   "past_shows": [{
     #     "artist_id": 5,
@@ -250,8 +258,8 @@ def show_venue(venue_id):
 
 @app.route('/venues/create', methods=['GET'])
 def create_venue_form():
-  form = VenueForm()
-  return render_template('forms/new_venue.html', form=form)
+    form = VenueForm()
+    return render_template('forms/new_venue.html', form=form)
 
 
 @app.route('/venues/create', methods=['POST'])
@@ -286,7 +294,8 @@ def create_venue_submission():
     finally:
         db.session.close()
     if error:
-        flash('An error occurred. Venue ' + request.form['name']+ ' could not be listed.')
+        flash('An error occurred. Venue ' + request.form['name'] + 
+              ' could not be listed.')
         return render_template('forms/new_venue.html', form=form)
     else:
         flash('Venue ' + request.form['name'] + ' was successfully listed!')
@@ -354,7 +363,8 @@ def edit_venue_submission(venue_id):
     finally:
         db.session.close()
     if error:
-        flash('An error occurred. Venue ' + request.form['name']+ ' could not be updated.')
+        flash('An error occurred. Venue ' + request.form['name'] + 
+              ' could not be edited.')
         return render_template('forms/edit_venue.html', form=form)
     else:
         flash('Venue ' + request.form['name'] + ' was successfully edited!')
@@ -396,6 +406,8 @@ def delete_venue(venue_id):
 #  ----------------------------------------------------------------
 
 
+#  List Artists
+#  ----------------------------------------------------------------
 @app.route('/artists')
 def artists():
   # TODO: replace with real data returned from querying the database
@@ -409,6 +421,11 @@ def artists():
     "name": "The Wild Sax Band",
   }]
   return render_template('pages/artists.html', artists=data)
+
+
+#  Search Artists
+#  ----------------------------------------------------------------
+
 
 @app.route('/artists/search', methods=['POST'])
 def search_artists():
@@ -424,6 +441,11 @@ def search_artists():
     }]
   }
   return render_template('pages/search_artists.html', results=response, search_term=request.form.get('search_term', ''))
+
+
+#  Show Artist
+#  ----------------------------------------------------------------
+
 
 @app.route('/artists/<int:artist_id>')
 def show_artist(artist_id):
@@ -504,8 +526,62 @@ def show_artist(artist_id):
   return render_template('pages/show_artist.html', artist=data)
 
 
-#  Update
+#  Create Artist
 #  ----------------------------------------------------------------
+
+
+@app.route('/artists/create', methods=['GET'])
+def create_artist_form():
+    form = ArtistForm()
+    print("artist page rendered")
+    return render_template('forms/new_artist.html', form=form)
+
+
+@app.route('/artists/create', methods=['POST'])
+def create_artist_submission():
+    form = ArtistForm()
+    error = False
+    print("Post happened")
+    try:
+        if not form.validate():
+            print("form not valid")
+            return render_template('forms/new_artist.html', form=form)
+
+        this_artist = Artist(
+                        name=form.name.data.strip(),
+                        genres=','.join(form.genres.data),
+                        city=form.city.data.strip(),
+                        state=form.state.data,
+                        phone=format_phone(form.phone.data),
+                        image_link=form.image_link.data,
+                        facebook_link=form.facebook_link.data,
+                        website=form.website.data,
+                        seeking_talent=form.seeking_talent.data,
+                        seeking_description=form.seeking_description.data
+        )
+
+        db.session.add(this_artist)
+        db.session.commit()
+        print("RECORD COMMITTED")
+    except:
+        error = True
+        db.session.rollback()
+        print(sys.exc_info())
+    finally:
+        db.session.close()
+    if error:
+        flash('An error occurred. Artist ' + request.form['name'] +
+              ' could not be listed.')
+        return render_template('forms/new_artist.html', form=form)
+    else:
+        flash('Artist ' + request.form['name'] + ' was successfully listed!')
+    return render_template('pages/home.html')
+
+
+#  Edit Artist
+#  ----------------------------------------------------------------
+
+
 @app.route('/artists/<int:artist_id>/edit', methods=['GET'])
 def edit_artist(artist_id):
   form = ArtistForm()
@@ -531,31 +607,6 @@ def edit_artist_submission(artist_id):
   # artist record with ID <artist_id> using the new attributes
 
   return redirect(url_for('show_artist', artist_id=artist_id))
-
-
-
-
-
-
-#  Create Artist
-#  ----------------------------------------------------------------
-
-@app.route('/artists/create', methods=['GET'])
-def create_artist_form():
-  form = ArtistForm()
-  return render_template('forms/new_artist.html', form=form)
-
-@app.route('/artists/create', methods=['POST'])
-def create_artist_submission():
-  # called upon submitting the new artist listing form
-  # TODO: insert form data as a new Venue record in the db, instead
-  # TODO: modify data to be the data object returned from db insertion
-
-  # on successful db insert, flash success
-  flash('Artist ' + request.form['name'] + ' was successfully listed!')
-  # TODO: on unsuccessful db insert, flash an error instead.
-  # e.g., flash('An error occurred. Artist ' + data.name + ' could not be listed.')
-  return render_template('pages/home.html')
 
 
 #  Shows

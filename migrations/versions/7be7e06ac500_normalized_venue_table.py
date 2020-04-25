@@ -1,4 +1,4 @@
-"""Noralized Venue table
+"""Normalized Venue table
 
 Revision ID: 7be7e06ac500
 Revises: ad17e495302a

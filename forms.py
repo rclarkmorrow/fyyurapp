@@ -6,21 +6,7 @@ from wtforms import (StringField, SelectField, SelectMultipleField,
                      ValidationError)
 from wtforms.validators import DataRequired, AnyOf, URL, Optional, Length
 
-
 # Forms
-
-class ShowForm(Form):
-    artist_id = StringField(
-        'artist_id'
-    )
-    venue_id = StringField(
-        'venue_id'
-    )
-    start_time = DateTimeField(
-        'start_time',
-        validators=[DataRequired()],
-        default=datetime.today()
-    )
 
 
 class VenueForm(Form):
@@ -112,7 +98,7 @@ class VenueForm(Form):
                                       'characters.')]
     )
     phone = StringField(
-        'phone', validators=[Optional()]
+        'phone', validators=[DataRequired()]
     )
     image_link = StringField(
         'image_link', validators=[DataRequired(),
@@ -171,19 +157,37 @@ class VenueForm(Form):
         'seeking_talent'
     )
     seeking_description = TextAreaField(
-        'seeking_description', validators=[Optional(),
-                                           Length(max=500,
+        'seeking_description', validators=[Length(max=500,
                                                   message='Can\'t be more ' +
                                                   'than 500 characters.')]
     )
 
 
 class ArtistForm(Form):
+    class Meta:
+        csrf = False
+
+    def validate_phone(form, field):
+        if (not re.search(r"^[0-9]{3}-[0-9]{3}-[0-9]{4}$", field.data)
+                and not re.search(r"^[0-9]{10}$", field.data)):
+            raise ValidationError('Please enter a valid US phone number' +
+                                  '<br />("123-456-7890" or "1234567890")')
+
+    def validate_seeking_description(form, field):
+        if form.seeking_talent.data is True and field.data == '':
+            raise ValidationError('Please enter details below.')
+
     name = StringField(
-        'name', validators=[DataRequired()]
+        'name', validators=[DataRequired(),
+                            Length(max=120,
+                                   message='Can\'t be more than 120 ' +
+                                   'characters')]
     )
     city = StringField(
-        'city', validators=[DataRequired()]
+        'city', validators=[DataRequired(),
+                            Length(max=120,
+                                   message='Can\'t be more than 120 ' +
+                                   'characters')]
     )
     state = SelectField(
         'state', validators=[DataRequired()],
@@ -242,11 +246,16 @@ class ArtistForm(Form):
         ]
     )
     phone = StringField(
-        # TODO implement validation logic for state
-        'phone'
+        'phone', validators=[DataRequired()]
     )
     image_link = StringField(
-        'image_link'
+        'image_link', validators=[DataRequired(),
+                                  URL(message='Please enter a valid URL.' +
+                                      '<br />("http://" or "https://" is ' +
+                                      'required)'),
+                                  Length(max=500,
+                                         message='<br />Can\'t be more than ' +
+                                         '500 characters.')]
     )
     genres = SelectMultipleField(
         # TODO implement enum restriction
@@ -273,9 +282,44 @@ class ArtistForm(Form):
             ('Other', 'Other'),
         ]
     )
+    website = StringField(
+        'website', validators=[Optional(),
+                               URL(message='Please enter a valid URL' +
+                                   '<br />("http://" or "https://" ' +
+                                   'is required)'),
+                               Length(max=120,
+                                      message='<br />Can\'t be more than ' +
+                                      '120 characters.')]
+    )
     facebook_link = StringField(
-        # TODO implement enum restriction
-        'facebook_link', validators=[URL(message='enter a valid URL')]
+        'facebook_link', validators=[Optional(),
+                                     URL(message='Please enter a' +
+                                         ' valid facebook link.' +
+                                         '<br />("http://" or "https://" ' +
+                                         'is required)'),
+                                     Length(max=120,
+                                            message='<br />Can\'t be more ' +
+                                            'than 120 characters.')]
+    )
+    seeking_talent = BooleanField(
+        'seeking_talent'
+    )
+    seeking_description = TextAreaField(
+        'seeking_description', validators=[Length(max=500,
+                                                  message='Can\'t be more ' +
+                                                  'than 500 characters.')]
     )
 
-# TODO IMPLEMENT NEW ARTIST FORM AND NEW SHOW FORM
+
+class ShowForm(Form):
+    artist_id = StringField(
+        'artist_id'
+    )
+    venue_id = StringField(
+        'venue_id'
+    )
+    start_time = DateTimeField(
+        'start_time',
+        validators=[DataRequired()],
+        default=datetime.today()
+    )
