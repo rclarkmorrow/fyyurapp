@@ -68,7 +68,7 @@ class Artist(db.Model):
     image_link = db.Column(db.String(500), nullable=False, default=defaultImg)
 
 
-# TODO Implement Show and Artist models, and complete all model 
+# TODO Implement Show and Artist models, and complete all model
 # relationships and properties, as a database migration.
 
 
@@ -103,7 +103,7 @@ def format_phone(form_phone):
     if len(form_phone) == 10:
         return (form_phone[:3] + '-' + form_phone[3:6] +
                 '-' + form_phone[6:])
-    elif ((len(form_phone) < 10 and len(form_phone) > 0) or 
+    elif ((len(form_phone) < 10 and len(form_phone) > 0) or
           len(form_phone) > 12):
         raise Exception('Phone Error')
     else:
@@ -147,28 +147,29 @@ def venues():
     try:
         venue_query = (
             Venue.query.with_entities(Venue.id, Venue.name,
-                                    Venue.city, Venue.state)
+                                      Venue.city, Venue.state)
             .order_by(Venue.name).all()
         )
-        
+
         locations = sorted(list(set([(record.city, record.state) for record
                                 in venue_query])), key=lambda x: (x[1], x[0]))
         venue_list = []
         print(locations)
         for location in locations:
             location_venues = []
-            for record in venue_query:               
+            for record in venue_query:
                 if record.city == location[0] and (record.state ==
                                                    location[1]):
-                    print(record.city, record.state) 
+                    print(record.city, record.state)
                     location_venues.append({'id': record.id,
                                            'name': record.name})
             venue_list.append({'city': location[0],
                                'state': location[1],
                                'venues': location_venues})
-    except:
+    except Exception as e:
         error = True
         print(sys.exc_info())
+        print('Exception', e)
     finally:
         db.session.close()
 
@@ -213,9 +214,10 @@ def show_venue(venue_id):
     error = False
     try:
         this_venue = getRecordAsDict(Venue, venue_id)
-    except:
+    except Exception as e:
         error = True
         print(sys.exc_info())
+        print('Exception: ', e)
     finally:
         db.session.close()
     if error is True:
@@ -282,14 +284,15 @@ def create_venue_submission():
 
         db.session.add(this_venue)
         db.session.commit()
-    except:
+    except Exception as e:
         error = True
         db.session.rollback()
         print(sys.exc_info())
+        print('Exception: ', e)
     finally:
         db.session.close()
     if error:
-        flash('An error occurred. Venue ' + request.form['name'] + 
+        flash('An error occurred. Venue ' + request.form['name'] +
               ' could not be listed.')
         return render_template('forms/new_venue.html', form=form)
     else:
@@ -309,9 +312,10 @@ def edit_venue(venue_id):
 
     try:
         this_venue = getRecordAsDict(Venue, venue_id)
-    except:
+    except Exception as e:
         error = True
         print(sys.exc_info())
+        print('Exception: ', e)
     finally:
         db.session.close()
     if error is True:
@@ -352,14 +356,15 @@ def edit_venue_submission(venue_id):
         db.session.add(this_venue)
         db.session.commit()
 
-    except:
+    except Exception as e:
         error = True
         db.session.rollback()
         print(sys.exc_info())
+        print('Exception: ', e)
     finally:
         db.session.close()
     if error:
-        flash('An error occurred. Venue ' + request.form['name'] + 
+        flash('An error occurred. Venue ' + request.form['name'] +
               ' could not be edited.')
         return render_template('forms/edit_venue.html', form=form)
     else:
@@ -381,10 +386,11 @@ def delete_venue(venue_id):
         this_venue_name = this_venue.name
         db.session.delete(this_venue)
         db.session.commit()
-    except:
+    except Exception as e:
         error = True
         db.session.rollback()
         print(sys.exc_info())
+        print('Exception: ', e)
     finally:
         db.session.close()
 
@@ -425,9 +431,10 @@ def artists():
             return artist_list
 
         artist_list = listArtists(artists_query)
-    except:
+    except Exception as e:
         error = True
         print(sys.exc_info())
+        print('Exception : ', e)
     finally:
         db.session.close()
 
@@ -473,9 +480,10 @@ def show_artist(artist_id):
     try:
         this_artist = getRecordAsDict(Artist, artist_id)
         print(this_artist)
-    except:
+    except Exception as e:
         error = True
         print(sys.exc_info())
+        print('Exception: ', e)
     finally:
         db.session.close()
     if error is True:
@@ -545,10 +553,11 @@ def create_artist_submission():
         db.session.add(this_artist)
         db.session.commit()
         print("RECORD COMMITTED")
-    except:
+    except Exception as e:
         error = True
         db.session.rollback()
         print(sys.exc_info())
+        print('Exception: ', e)
     finally:
         db.session.close()
     if error:
@@ -572,9 +581,10 @@ def edit_artist(artist_id):
 
     try:
         this_artist = getRecordAsDict(Artist, artist_id)
-    except:
+    except Exception as e:
         error = True
         print(sys.exc_info())
+        print('Exception: ', e)
     finally:
         db.session.close()
     if error is True:
@@ -614,14 +624,15 @@ def edit_artist_submission(artist_id):
         db.session.add(this_artist)
         db.session.commit()
 
-    except:
+    except Exception as e:
         error = True
         db.session.rollback()
         print(sys.exc_info())
+        print('Exception ', e)
     finally:
         db.session.close()
     if error:
-        flash('An error occurred. Artist ' + request.form['name'] + 
+        flash('An error occurred. Artist ' + request.form['name'] +
               ' could not be edited.')
         return render_template('forms/edit_artist.html', form=form)
     else:
@@ -629,6 +640,39 @@ def edit_artist_submission(artist_id):
     return redirect(url_for('show_artist', artist_id=artist_id))
 
 
+#  Delete Artist
+#  ----------------------------------------------------------------
+
+
+@app.route('/artists/<artist_id>', methods=['DELETE'])
+def delete_artist(artist_id):
+    # Deletes an artist from the database.
+    error = False
+
+    try:
+        this_artist = Artist.query.get(artist_id)
+        this_artist_name = this_artist.name
+        db.session.delete(this_artist)
+        db.session.commit()
+    except Exception as e:
+        error = True
+        db.session.rollback()
+        print(sys.exc_info())
+        print('Exception: ', e)
+    finally:
+        db.session.close()
+
+    if error:
+        flash('An error occurred. Artist ' + this_artist.name +
+              ' could not be deleted.')
+        return jsonify(success=False), 500
+    else:
+        flash('Artist ' + this_artist.name + ' was successfully deleted!')
+
+    return jsonify(success=True), 200
+
+
+# -----------------------------------------------------------------
 #  Shows
 #  ----------------------------------------------------------------
 
@@ -693,9 +737,11 @@ def create_show_submission():
   # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
   return render_template('pages/home.html')
 
+
 @app.errorhandler(404)
 def not_found_error(error):
     return render_template('errors/404.html'), 404
+
 
 @app.errorhandler(500)
 def server_error(error):
@@ -712,9 +758,9 @@ if not app.debug:
     app.logger.addHandler(file_handler)
     app.logger.info('errors')
 
-#----------------------------------------------------------------------------#
+"""--------------------------------------------------------------------------#
 # Launch.
-#----------------------------------------------------------------------------#
+#--------------------------------------------------------------------------"""
 
 # Default port:
 if __name__ == '__main__':
