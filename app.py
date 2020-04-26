@@ -154,13 +154,13 @@ def venues():
         locations = sorted(list(set([(record.city, record.state) for record
                                 in venue_query])), key=lambda x: (x[1], x[0]))
         venue_list = []
-        print(locations)
+        # print(locations)
         for location in locations:
             location_venues = []
             for record in venue_query:
                 if record.city == location[0] and (record.state ==
                                                    location[1]):
-                    print(record.city, record.state)
+                    # print(record.city, record.state)
                     location_venues.append({'id': record.id,
                                            'name': record.name})
             venue_list.append({'city': location[0],
@@ -366,7 +366,7 @@ def edit_venue_submission(venue_id):
     if error:
         flash('An error occurred. Venue ' + request.form['name'] +
               ' could not be edited.')
-        return render_template('forms/edit_venue.html', form=form)
+        # return render_template('forms/edit_venue.html', form=form)
     else:
         flash('Venue ' + request.form['name'] + ' was successfully edited!')
     return redirect(url_for('show_venue', venue_id=venue_id))
