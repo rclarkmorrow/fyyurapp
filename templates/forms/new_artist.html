@@ -77,7 +77,7 @@
     <div class="form-group">
       <label>
         <span style="margin-right: 5px;">Are looking for places to play?</span>
-        {{ form.seeking_talent(class_ = 'form-control', class = 'small-checkbox', autofocus = true) }}
+        {{ form.seeking_venue(class_ = 'form-control', class = 'small-checkbox', autofocus = true) }}
       </label>
       {% if form.seeking_description.errors %}
       <p><span class="error" style="color:red;">{% for error in form.seeking_description.errors %}{{error|safe}}{% endfor %}</span></p>

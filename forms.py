@@ -174,7 +174,7 @@ class ArtistForm(Form):
                                   '<br />("123-456-7890" or "1234567890")')
 
     def validate_seeking_description(form, field):
-        if form.seeking_talent.data is True and field.data == '':
+        if form.seeking_venue.data is True and field.data == '':
             raise ValidationError('Please enter details below.')
 
     name = StringField(
@@ -301,8 +301,8 @@ class ArtistForm(Form):
                                             message='<br />Can\'t be more ' +
                                             'than 120 characters.')]
     )
-    seeking_talent = BooleanField(
-        'seeking_talent'
+    seeking_venue = BooleanField(
+        'seeking_venue'
     )
     seeking_description = TextAreaField(
         'seeking_description', validators=[Length(max=500,

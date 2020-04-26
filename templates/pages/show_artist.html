@@ -8,6 +8,8 @@
 		</h1>
 		<p class="subtitle">
 			ID: {{ artist.id }}
+			<button id="edit-artist" data-id="{{ artist.id }}" ><i class="fas fa-edit"></i></button>
+			<button id="delete-artist" data-id="{{ artist.id }}" data-name="{{ artist.name }}"><i class="fas fa-trash"></i></button>
 		</p>
 		<div class="genres">
 			{% for genre in artist.genres %}
@@ -71,6 +73,30 @@
 		{% endfor %}
 	</div>
 </section>
+
+<script>
+	document.getElementById("delete-artist").onclick = function(deleteArtist) {
+		const ARTIST_ID = deleteArtist.currentTarget.dataset['id'];
+		fetch( '/artists/' + ARTIST_ID, {
+			method: 'DELETE',
+		}).then( response => {
+			if ( response.ok ) {
+				window.location.href='/artists';
+			}
+			else {
+				console.log ('there was an error on else');
+				window.location.href=`/artists/${ARTIST_ID}`;
+			}
+		}).catch( error => {
+			window.location.href=`/`;
+		});
+	}
+	
+	document.getElementById("edit-artist").onclick = function(editArtist) {
+		const ARTIST_ID = editArtist.currentTarget.dataset['id'];
+		window.location.href = `/artists/${ARTIST_ID}/edit`;
+	}
+</script>
 
 {% endblock %}
 
