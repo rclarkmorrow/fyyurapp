@@ -4,9 +4,10 @@ from datetime import datetime
 from flask_wtf import FlaskForm
 from wtforms import (StringField, SelectField, SelectMultipleField,
                      DateTimeField, BooleanField, TextAreaField,
-                     ValidationError)
+                     HiddenField, ValidationError)
 from wtforms.validators import (DataRequired, AnyOf, URL, Optional, Length)
-from validate import Phone, ReduiredIfChecked
+from validate import Phone, ReduiredIfChecked, IsUnique
+from models import Venue, Artist
 
 # Forms
 
@@ -15,11 +16,14 @@ class VenueForm(FlaskForm):
     class Meta:
         csrf = False
 
+    id = HiddenField()
 
     name = StringField(
         'name', validators=[DataRequired(),
                             Length(max=120,
-                                   message=validate.text_120_error)]
+                                   message=validate.text_120_error),
+                            IsUnique(table=Venue, key='id',
+                                     check_field='name',)]
     )
     city = StringField(
         'city', validators=[DataRequired(),
@@ -70,14 +74,19 @@ class VenueForm(FlaskForm):
     )
     print(seeking_talent)
 
+
 class ArtistForm(FlaskForm):
     class Meta:
         csrf = False
 
+    id = HiddenField()
+
     name = StringField(
         'name', validators=[DataRequired(),
                             Length(max=120,
-                                   message=validate.text_120_error)]
+                                   message=validate.text_120_error),
+                            IsUnique(table=Artist, key='id',
+                                     check_field='name')]
     )
     city = StringField(
         'city', validators=[DataRequired(),

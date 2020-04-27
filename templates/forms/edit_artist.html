@@ -6,6 +6,8 @@
   <form class="form" method="post" action="/artists/{{artist.id}}/edit">
 
     <h3 class="form-heading">Edit artist <em>{{ artist.name }}</em></h3>
+    <button type="button" id="delete-artist" data-id="{{ artist.id }}"><i class="fas fa-trash"></i></button>
+
 
     <div class="form-group">
       <label for="name">Name</label>
@@ -89,7 +91,29 @@
 
     <input type="submit" value="Edit Artist" class="btn btn-primary btn-lg btn-block">
   
+    <!-- invisible field to hold object id -->
+    {{ form.id(class_ = 'form-control') }} 
+
   </form>
 </div>
+
+<script>
+  document.getElementById("delete-artist").onclick = function(deleteArtist) {
+  const ARTIST_ID = deleteArtist.currentTarget.dataset['id'];
+  fetch( '/artists/' + ARTIST_ID, {
+    method: 'DELETE',
+  }).then( response => {
+    if ( response.ok ) {
+      window.location.href='/artists';
+    }
+    else {
+      console.log ('there was an error on else');
+      window.location.href=`/artists/${ARTIST_ID}`;
+    }
+  }).catch( error => {
+    window.location.href=`/`;
+  });
+}
+</script>
 
 {% endblock %}

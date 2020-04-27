@@ -1,11 +1,14 @@
 import re
 from wtforms import ValidationError
+from models import db
 
 """--------------------------------------------------------------------------#
-# Field validators and error messages
+# Validators, error messages and enum choice restrictions
 # --------------------------------------------------------------------------"""
 
-# Custom Validators
+#  ----------------------------------------------------------------
+#  Custom Validators
+#  ----------------------------------------------------------------
 
 
 class Phone(object):
@@ -16,6 +19,7 @@ class Phone(object):
         self.message = message
 
     def __call__(self, form, field):
+        # Regex validates whether inputed phone number meets requirements
         if (not re.search(r"^[0-9]{3}-[0-9]{3}-[0-9]{4}$", field.data)
                 and not re.search(r"^[0-9]{10}$", field.data)):
             raise ValidationError(self.message)
@@ -29,15 +33,57 @@ class ReduiredIfChecked(object):
         self.message = message
 
     def __call__(self, form, field):
-        print(self.check_box)
+        # Requires base field to have data if specified check box is
+        # true.
         check_box_value = form._fields.get(self.check_box)
         print(check_box_value.data)
 
-        if check_box_value.data is True and field.data == '':
-                raise ValidationError(self.message)
+        if check_box_value.data is True and field.data.strip() == '':
+            raise ValidationError(self.message)
 
 
-# Error messages
+class IsUnique(object):
+    def __init__(self, table=None, key=None,
+                 check_field=None, message=None):
+        self.table = table
+        self.key = key
+        self.check_field = check_field
+
+        if not message:
+            message = (f'An error occured')
+        self.message = message
+
+    def __call__(self, form, field):
+        # Conditional validates required inputs, returns exception if not met
+        if self.table is None or self.key is None or self.check_field is None:
+            raise Exception('Required paramaters not provided to verify ' +
+                            'field is unique.')
+
+        else:
+            # Queries database for matching record with the table and column
+            # provided as parameters.
+            check_field_value = form._fields.get(self.check_field).data.strip()
+            key_value = int((form._fields.get(self.key).data) or -1)
+            record_query = (
+                self.table.query
+                .filter(getattr(self.table, self.check_field)
+                        == check_field_value).first()
+            )
+            # If a record is returned checks for field value match and record
+            # id mismatch. Raises validation error if both conditions are met.
+            if record_query is not None:
+                if (getattr(record_query, self.check_field).strip()
+                        == check_field_value and (key_value) !=
+                        ((getattr(record_query, self.key)))):
+                    self.message = (f'The {self.check_field} ' +
+                                    f'{check_field_value} ' + 'already exists')
+                    raise ValidationError(self.message)
+
+
+#  ----------------------------------------------------------------
+#  Error messages
+#  ----------------------------------------------------------------
+
 
 text_120_error = 'Can\'t be more than 120 characters'
 text_500_error = 'Can\'t be more than 500 characters'
@@ -46,7 +92,11 @@ url_error = ('Please enter a valid URL.<br />("http://" or' +
 fb_error = ('Please enter a valid facebook link.' +
             '<br />("http://" or "https://" is required)')
 
-# Enum data for restricted choices
+
+#  ----------------------------------------------------------------
+#  Enum data for restricted choices
+#  ----------------------------------------------------------------
+
 
 state_choices = [
                 ('AL', 'AL'),

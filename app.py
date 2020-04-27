@@ -63,7 +63,7 @@ def format_phone(form_phone):
                 '-' + form_phone[6:])
     elif ((len(form_phone) < 10 and len(form_phone) > 0) or
           len(form_phone) > 12):
-        raise Exception('Phone Error')
+        raise Exception('Phone validation on the conrollter failed.')
     else:
         return form_phone
 
@@ -78,6 +78,7 @@ def getRecordAsDict(table, record_id):
     return(record_as_dict)
 
 
+#  ----------------------------------------------------------------
 #  Main
 #  ----------------------------------------------------------------
 
@@ -112,13 +113,12 @@ def venues():
         locations = sorted(list(set([(record.city, record.state) for record
                                 in venue_query])), key=lambda x: (x[1], x[0]))
         venue_list = []
-        # print(locations)
+
         for location in locations:
             location_venues = []
             for record in venue_query:
                 if record.city == location[0] and (record.state ==
                                                    location[1]):
-                    # print(record.city, record.state)
                     location_venues.append({'id': record.id,
                                            'name': record.name})
             venue_list.append({'city': location[0],
@@ -265,7 +265,6 @@ def create_venue_submission():
 @app.route('/venues/<int:venue_id>/edit', methods=['GET'])
 def edit_venue(venue_id):
     # Populates form with venue record from database.
-    form = VenueForm()
     error = False
 
     try:
@@ -437,7 +436,6 @@ def show_artist(artist_id):
 
     try:
         this_artist = getRecordAsDict(Artist, artist_id)
-        print(this_artist)
     except Exception as e:
         error = True
         print(sys.exc_info())
@@ -489,10 +487,8 @@ def create_artist_submission():
     # Adds new artist to the database.
     form = ArtistForm()
     error = False
-    print("Post happened")
     try:
         if not form.validate():
-            print("form not valid")
             return render_template('forms/new_artist.html', form=form)
 
         this_artist = Artist(
@@ -510,7 +506,6 @@ def create_artist_submission():
 
         db.session.add(this_artist)
         db.session.commit()
-        print("RECORD COMMITTED")
     except Exception as e:
         error = True
         db.session.rollback()
@@ -566,7 +561,7 @@ def edit_artist_submission(artist_id):
 
         if not form.validate():
             return render_template('forms/edit_artist.html', form=form,
-                                   venue=this_artist)
+                                   artist=this_artist)
 
         this_artist.name = form.name.data
         this_artist.genres = ','.join(form.genres.data)
@@ -592,7 +587,6 @@ def edit_artist_submission(artist_id):
     if error:
         flash('An error occurred. Artist ' + request.form['name'] +
               ' could not be edited.')
-        return render_template('forms/edit_artist.html', form=form)
     else:
         flash('Artist ' + request.form['name'] + ' was successfully edited!')
     return redirect(url_for('show_artist', artist_id=artist_id))
