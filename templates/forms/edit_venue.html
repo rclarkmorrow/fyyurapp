@@ -5,9 +5,13 @@
 <div class="form-wrapper">
   <form class="form" method="post" action="/venues/{{venue.id}}/edit">
 
-    <h3 class="form-heading">Edit venue <em>{{ venue.name }}</em> <a href="{{ url_for('index') }}" title="Back to homepage"><i class="fa fa-home pull-right"></i></a></h3>
-    <button type="button" id="delete-venue" data-id="{{ venue.id }}"><i class="fas fa-trash"></i></button>
-
+    <h3 class="form-heading">Edit venue <em>{{ venue.name }}</em></h3>
+    
+    <p class="subtitle">
+			ID: {{ venue.id }}
+      <button type="button" id="delete-venue" data-id="{{ venue.id }}"><i class="fas fa-trash"></i></button>
+    </p>
+    
     <div class="form-group">
       <label for="name">Name</label>
       {{ form.name(class_ = 'form-control', autofocus = true) }}

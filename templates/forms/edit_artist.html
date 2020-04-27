@@ -6,8 +6,11 @@
   <form class="form" method="post" action="/artists/{{artist.id}}/edit">
 
     <h3 class="form-heading">Edit artist <em>{{ artist.name }}</em></h3>
-    <button type="button" id="delete-artist" data-id="{{ artist.id }}"><i class="fas fa-trash"></i></button>
-
+    
+    <p class="subtitle">
+			ID: {{ artist.id }}
+      <button type="button" id="delete-artist" data-id="{{ artist.id }}"><i class="fas fa-trash"></i></button>
+    </p>
 
     <div class="form-group">
       <label for="name">Name</label>
