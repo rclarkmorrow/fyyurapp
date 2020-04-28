@@ -12,6 +12,11 @@ db = SQLAlchemy()
 #--------------------------------------------------------------------------"""
 
 
+#  ----------------------------------------------------------------
+#  Venue model
+#  ----------------------------------------------------------------
+
+
 class Venue(db.Model):
     __tablename__ = 'Venue'
 
@@ -31,6 +36,11 @@ class Venue(db.Model):
     image_link = db.Column(db.String(500), nullable=False, default=defaultImg)
 
 
+#  ----------------------------------------------------------------
+#  Artist model
+#  ----------------------------------------------------------------
+
+
 class Artist(db.Model):
     __tablename__ = 'Artist'
 
@@ -47,6 +57,11 @@ class Artist(db.Model):
     seeking_venue = db.Column(db.Boolean, nullable=False, server_default='f')
     seeking_description = db.Column(db.String(500))
     image_link = db.Column(db.String(500), nullable=False, default=defaultImg)
+
+
+#  ----------------------------------------------------------------
+#  Show model
+#  ----------------------------------------------------------------
 
 
 # TODO Implement Show and Artist models, and complete all model

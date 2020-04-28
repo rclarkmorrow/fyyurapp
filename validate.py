@@ -1,3 +1,7 @@
+"""--------------------------------------------------------------------------#
+# Imports
+# --------------------------------------------------------------------------"""
+
 import re
 from wtforms import ValidationError
 from models import db
@@ -25,6 +29,24 @@ class Phone(object):
             raise ValidationError(self.message)
 
 
+class AnyOfMultiple(object):
+    def __init__(self, choices=None, message=None):
+        self.choices = choices
+        if not message:
+            message = ('Please select valid choices.')
+        self.message = message
+
+    def __call__(self, form, field):
+        # Checks each selection in a MultipleSelectField against
+        # against values in passed choices list.
+
+        for selection in field.data:
+            print(selection)
+            print(self.choices)
+            if selection not in self.choices:
+                raise ValidationError(self.message)
+
+
 class ReduiredIfChecked(object):
     def __init__(self, check_box=None, message=None):
         self.check_box = check_box
@@ -36,7 +58,6 @@ class ReduiredIfChecked(object):
         # Requires base field to have data if specified check box is
         # true.
         check_box_value = form._fields.get(self.check_box)
-        print(check_box_value.data)
 
         if check_box_value.data is True and field.data.strip() == '':
             raise ValidationError(self.message)
@@ -50,7 +71,7 @@ class IsUnique(object):
         self.check_field = check_field
 
         if not message:
-            message = (f'An error occured')
+            message = (f'This field must be unique.')
         self.message = message
 
     def __call__(self, form, field):
@@ -58,10 +79,10 @@ class IsUnique(object):
         if self.table is None or self.key is None or self.check_field is None:
             raise Exception('Required paramaters not provided to verify ' +
                             'field is unique.')
-
         else:
             # Queries database for matching record with the table and column
             # provided as parameters.
+            # NOTE: this is intentionally case-insensitive
             check_field_value = form._fields.get(self.check_field).data.strip()
             key_value = int((form._fields.get(self.key).data) or -1)
             record_query = (
@@ -75,8 +96,6 @@ class IsUnique(object):
                 if (getattr(record_query, self.check_field).strip()
                         == check_field_value and (key_value) !=
                         ((getattr(record_query, self.key)))):
-                    self.message = (f'The {self.check_field} ' +
-                                    f'{check_field_value} ' + 'already exists')
                     raise ValidationError(self.message)
 
 
@@ -91,6 +110,10 @@ url_error = ('Please enter a valid URL.<br />("http://" or' +
              ' "https://" is required)')
 fb_error = ('Please enter a valid facebook link.' +
             '<br />("http://" or "https://" is required)')
+state_error = ('Please select a valid state.')
+genres_error = ('Please select valid genres.')
+venue_name_error = ('This venue name is already listed.')
+artist_name_error = ('This artist name is already listed.')
 
 
 #  ----------------------------------------------------------------
@@ -151,6 +174,7 @@ state_choices = [
                 ('WI', 'WI'),
                 ('WY', 'WY'),
                ]
+state_list = [choice[1] for choice in state_choices]
 
 genre_choices = [
             ('Alternative', 'Alternative'),
@@ -173,3 +197,4 @@ genre_choices = [
             ('Soul', 'Soul'),
             ('Other', 'Other'),
            ]
+genre_list = [choice[1] for choice in genre_choices]

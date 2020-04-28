@@ -1,3 +1,7 @@
+"""--------------------------------------------------------------------------#
+# Imports
+# --------------------------------------------------------------------------"""
+
 import re
 import validate
 from datetime import datetime
@@ -6,10 +10,18 @@ from wtforms import (StringField, SelectField, SelectMultipleField,
                      DateTimeField, BooleanField, TextAreaField,
                      HiddenField, ValidationError)
 from wtforms.validators import (DataRequired, AnyOf, URL, Optional, Length)
-from validate import Phone, ReduiredIfChecked, IsUnique
+from validate import Phone, ReduiredIfChecked, IsUnique, AnyOfMultiple
 from models import Venue, Artist
 
+
+"""--------------------------------------------------------------------------#
 # Forms
+# --------------------------------------------------------------------------"""
+
+
+#  ----------------------------------------------------------------
+#  Venue form
+#  ----------------------------------------------------------------
 
 
 class VenueForm(FlaskForm):
@@ -23,7 +35,8 @@ class VenueForm(FlaskForm):
                             Length(max=120,
                                    message=validate.text_120_error),
                             IsUnique(table=Venue, key='id',
-                                     check_field='name',)]
+                                     check_field='name',
+                                     message=validate.venue_name_error)]
     )
     city = StringField(
         'city', validators=[DataRequired(),
@@ -31,7 +44,9 @@ class VenueForm(FlaskForm):
                                    message=validate.text_120_error)]
     )
     state = SelectField(
-        'state', validators=[DataRequired()],
+        'state', validators=[DataRequired(),
+                             AnyOf(validate.state_list,
+                                   message=validate.state_error)],
         choices=validate.state_choices
     )
     address = StringField(
@@ -49,7 +64,9 @@ class VenueForm(FlaskForm):
                                          message=validate.text_500_error)]
     )
     genres = SelectMultipleField(
-        'genres', validators=[DataRequired()],
+        'genres', validators=[DataRequired(),
+                              AnyOfMultiple(choices=validate.genre_list,
+                                            message=validate.genres_error)],
         choices=validate.genre_choices
     )
     website = StringField(
@@ -65,14 +82,18 @@ class VenueForm(FlaskForm):
                                             message=validate.text_120_error)]
     )
     seeking_talent = BooleanField(
-        'seeking_talent'
+        'seeking_talent', validators=[AnyOf([True, False])]
     )
     seeking_description = TextAreaField(
         'seeking_description',
         validators=[ReduiredIfChecked(check_box='seeking_talent'),
                     Length(max=500, message=validate.text_500_error)]
     )
-    print(seeking_talent)
+
+
+#  ----------------------------------------------------------------
+#  Artist form
+#  ----------------------------------------------------------------
 
 
 class ArtistForm(FlaskForm):
@@ -86,7 +107,8 @@ class ArtistForm(FlaskForm):
                             Length(max=120,
                                    message=validate.text_120_error),
                             IsUnique(table=Artist, key='id',
-                                     check_field='name')]
+                                     check_field='name',
+                                     message=validate.artist_name_error)]
     )
     city = StringField(
         'city', validators=[DataRequired(),
@@ -94,7 +116,9 @@ class ArtistForm(FlaskForm):
                                    message=validate.text_120_error)]
     )
     state = SelectField(
-        'state', validators=[DataRequired()],
+        'state', validators=[DataRequired(),
+                             AnyOf(validate.state_list,
+                                   message=validate.state_error)],
         choices=validate.state_choices
     )
     phone = StringField(
@@ -107,7 +131,9 @@ class ArtistForm(FlaskForm):
                                          message=validate.text_500_error)]
     )
     genres = SelectMultipleField(
-        'genres', validators=[DataRequired()],
+        'genres', validators=[DataRequired(),
+                              AnyOfMultiple(choices=validate.genre_list,
+                              message=validate.genres_error)],
         choices=validate.genre_choices
     )
     website = StringField(
@@ -123,13 +149,18 @@ class ArtistForm(FlaskForm):
                                             message=validate.text_120_error)]
     )
     seeking_venue = BooleanField(
-        'seeking_venue'
+        'seeking_venue', validators=[AnyOf([True, False])]
     )
     seeking_description = TextAreaField(
         'seeking_description',
         validators=[ReduiredIfChecked(check_box='seeking_venue'),
                     Length(max=500, message=validate.text_500_error)]
     )
+
+
+#  ----------------------------------------------------------------
+#  Show form
+#  ----------------------------------------------------------------
 
 
 class ShowForm(FlaskForm):
