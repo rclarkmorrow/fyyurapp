@@ -27,7 +27,7 @@
 
     <div class="form-group">
       <label for="start_time">Start Time</label>
-      {{ form.start_time(class_ = 'form-control', placeholder='YYYY-MM-DD HH:MM', autofocus = true) }}
+      {{ form.start_time(class_ = 'form-control', placeholder='YYYY-MM-DD HH:MM:SS', autofocus = true) }}
       {% if form.start_time.errors %}
       <span class="error" style="color:red;">{% for error in form.start_time.errors %}{{error|safe}}{% endfor %}</span>
       {% endif %}

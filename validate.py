@@ -71,7 +71,7 @@ class IsUnique(object):
         self.check_field = check_field
 
         if not message:
-            message = (f'This field must be unique.')
+            message = 'This field must be unique.'
         self.message = message
 
     def __call__(self, form, field):
@@ -79,24 +79,48 @@ class IsUnique(object):
         if self.table is None or self.key is None or self.check_field is None:
             raise Exception('Required paramaters not provided to verify ' +
                             'field is unique.')
-        else:
-            # Queries database for matching record with the table and column
-            # provided as parameters.
-            # NOTE: this is intentionally case-insensitive
-            check_field_value = form._fields.get(self.check_field).data.strip()
-            key_value = int((form._fields.get(self.key).data) or -1)
-            record_query = (
-                self.table.query
-                .filter(getattr(self.table, self.check_field)
-                        == check_field_value).first()
-            )
-            # If a record is returned checks for field value match and record
-            # id mismatch. Raises validation error if both conditions are met.
-            if record_query is not None:
-                if (getattr(record_query, self.check_field).strip()
-                        == check_field_value and (key_value) !=
-                        ((getattr(record_query, self.key)))):
-                    raise ValidationError(self.message)
+
+        # Queries database for matching record with the table and column
+        # provided as parameters.
+        # NOTE: this is intentionally case-insensitive to allow for whacky
+        # capitalization schemes some bands are known for.
+        check_field_value = field.data.strip()
+        key_value = int((form._fields.get(self.key).data) or -1)
+        record_query = (
+            self.table.query
+            .filter(getattr(self.table, self.check_field)
+                    == check_field_value).first()
+        )
+        # If a record is returned checks for field value match and record
+        # id mismatch. Raises validation error if both conditions are met.
+        if record_query is not None:
+            if (getattr(record_query, self.check_field).strip()
+                    == check_field_value and (key_value) !=
+                    ((getattr(record_query, self.key)))):
+                raise ValidationError(self.message)
+
+
+class RecordExists(object):
+    def __init__(self, table=None, check_field=None, message=None):
+        self.table = table
+        self.check_field = check_field
+
+        if not message:
+            message = 'The record does not exist'
+        self.message = message
+
+    def __call__(self, form, field):
+        if self.table is None or self.check_field is None:
+            raise Exception('The required parameters not provided ' +
+                            'to verify record exists')
+        check_field_value = field.data
+        record_query = (
+            self.table.query
+            .filter(getattr(self.table, self.check_field)
+                    == check_field_value).first()
+        )
+        if record_query is None:
+            raise ValidationError(self.message)
 
 
 #  ----------------------------------------------------------------
@@ -110,11 +134,14 @@ url_error = ('Please enter a valid URL.<br />("http://" or' +
              ' "https://" is required)')
 fb_error = ('Please enter a valid facebook link.' +
             '<br />("http://" or "https://" is required)')
-state_error = ('Please select a valid state.')
-genres_error = ('Please select valid genres.')
-venue_name_error = ('This venue name is already listed.')
-artist_name_error = ('This artist name is already listed.')
-
+state_error = 'Please select a valid state.'
+genres_error = 'Please select valid genres.'
+venue_name_error = 'This venue name is already listed.'
+artist_name_error = 'This artist name is already listed.'
+artist_id_error = 'This artist ID is not listed.'
+venue_id_error = 'This venue ID is not listed.'
+date_error = 'Please enter a show time in YYYY-MM-DD HH:MM:SS format'
+integer_error = 'Please enter a valid number.'
 
 #  ----------------------------------------------------------------
 #  Enum data for restricted choices

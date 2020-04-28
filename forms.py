@@ -8,9 +8,10 @@ from datetime import datetime
 from flask_wtf import FlaskForm
 from wtforms import (StringField, SelectField, SelectMultipleField,
                      DateTimeField, BooleanField, TextAreaField,
-                     HiddenField, ValidationError)
+                     HiddenField, IntegerField, ValidationError)
 from wtforms.validators import (DataRequired, AnyOf, URL, Optional, Length)
-from validate import Phone, ReduiredIfChecked, IsUnique, AnyOfMultiple
+from validate import (Phone, ReduiredIfChecked, IsUnique, AnyOfMultiple,
+                      RecordExists)
 from models import Venue, Artist, Show
 
 
@@ -167,17 +168,21 @@ class ShowForm(FlaskForm):
     class Meta:
         csrf = False
 
-    artist_id = StringField(
+    artist_id = IntegerField(
         'artist_id',
-        validators=[DataRequired(message='The artist ID has a problem')] 
+        validators=[DataRequired(message=validate.integer_error),
+                    RecordExists(table=Artist, check_field='id',
+                                 message=validate.artist_id_error)]
     )
-    venue_id = StringField(
+    venue_id = IntegerField(
         'venue_id',
-        validators=[DataRequired(message='The venue ID has a problem.')]
+        validators=[DataRequired(message=validate.integer_error),
+                    RecordExists(table=Venue, check_field='id',
+                                 message=validate.venue_id_error)]
 
     )
     start_time = DateTimeField(
         'start_time',
-        validators=[DataRequired(message='The time has a problem.')],
+        validators=[DataRequired(message=validate.date_error)],
         default=datetime.today()
     )
