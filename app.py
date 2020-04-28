@@ -51,6 +51,7 @@ app.jinja_env.filters['datetime'] = format_datetime
 # Controllers.
 #--------------------------------------------------------------------------"""
 
+
 #  Functions
 #  ----------------------------------------------------------------
 
@@ -92,7 +93,7 @@ def index():
 #  ----------------------------------------------------------------
 
 
-#  List Venues
+#  List venues
 #  ----------------------------------------------------------------
 
 
@@ -100,7 +101,7 @@ def index():
 def venues():
     # Lists venues ordered by city and state.
     error = False
-    #  num_shows should be aggregated based on number of upcoming
+    # TODO num_shows should be aggregated based on number of upcoming
     # shows per venue.
 
     try:
@@ -141,7 +142,7 @@ def venues():
         return render_template('pages/venues.html', areas=venue_list)
 
 
-#  Search Venues
+#  Search venues
 #  ----------------------------------------------------------------
 
 
@@ -161,14 +162,13 @@ def search_venues():
   return render_template('pages/search_venues.html', results=response, search_term=request.form.get('search_term', ''))
 
 
-#  Show Venue
+#  Show venue
 #  ----------------------------------------------------------------
 
 
 @app.route('/venues/<int:venue_id>')
 def show_venue(venue_id):
-    # shows the venue page with the given venue_id
-
+    # Shows the venue page with the given venue_id
     error = False
     try:
         this_venue = getRecordAsDict(Venue, venue_id)
@@ -205,7 +205,7 @@ def show_venue(venue_id):
     #   }
 
 
-#  Create Venue
+#  Create venue
 #  ----------------------------------------------------------------
 
 
@@ -218,7 +218,7 @@ def create_venue_form():
 
 @app.route('/venues/create', methods=['POST'])
 def create_venue_submission():
-    # Adds new venue to database.
+    # Adds new venue record to database.
     form = VenueForm()
     error = False
 
@@ -258,7 +258,7 @@ def create_venue_submission():
     return render_template('pages/home.html')
 
 
-#  Edit Venue
+#  Edit venue
 #  ----------------------------------------------------------------
 
 
@@ -329,7 +329,7 @@ def edit_venue_submission(venue_id):
     return redirect(url_for('show_venue', venue_id=venue_id))
 
 
-#  Delete Venue
+#  Delete venue
 #  ----------------------------------------------------------------
 
 
@@ -366,8 +366,10 @@ def delete_venue(venue_id):
 #  ----------------------------------------------------------------
 
 
-#  List Artists
+#  List artists
 #  ----------------------------------------------------------------
+
+
 @app.route('/artists')
 def artists():
     # Lists artist records in the database.
@@ -405,7 +407,7 @@ def artists():
         return render_template('pages/artists.html', artists=artist_list)
 
 
-#  Search Artists
+#  Search artists
 #  ----------------------------------------------------------------
 
 
@@ -470,7 +472,7 @@ def show_artist(artist_id):
     return render_template('pages/show_artist.html', artist=this_artist)
 
 
-#  Create Artist
+#  Create artist
 #  ----------------------------------------------------------------
 
 
@@ -484,7 +486,7 @@ def create_artist_form():
 
 @app.route('/artists/create', methods=['POST'])
 def create_artist_submission():
-    # Adds new artist to the database.
+    # Adds new artist record to the database.
     form = ArtistForm()
     error = False
     try:
@@ -522,7 +524,7 @@ def create_artist_submission():
     return render_template('pages/home.html')
 
 
-#  Edit Artist
+#  Edit artist
 #  ----------------------------------------------------------------
 
 
@@ -592,7 +594,7 @@ def edit_artist_submission(artist_id):
     return redirect(url_for('show_artist', artist_id=artist_id))
 
 
-#  Delete Artist
+#  Delete artist
 #  ----------------------------------------------------------------
 
 
@@ -627,6 +629,11 @@ def delete_artist(artist_id):
 # -----------------------------------------------------------------
 #  Shows
 #  ----------------------------------------------------------------
+
+
+#  List shows
+#  ----------------------------------------------------------------
+
 
 @app.route('/shows')
 def shows():
@@ -671,23 +678,61 @@ def shows():
   }]
   return render_template('pages/shows.html', shows=data)
 
+
+#  Create show
+#  ----------------------------------------------------------------
+
+
 @app.route('/shows/create')
 def create_shows():
-  # renders form. do not touch.
-  form = ShowForm()
-  return render_template('forms/new_show.html', form=form)
+    # Renders the new show form.
+    form = ShowForm()
+    return render_template('forms/new_show.html', form=form)
+
 
 @app.route('/shows/create', methods=['POST'])
 def create_show_submission():
-  # called to create new shows in the db, upon submitting new show listing form
-  # TODO: insert form data as a new Show record in the db, instead
+    # Creates new show record in the database.
+    form = ShowForm()
+    error = False
+    try:
+        if not form.validate():
+            print("New Show Not Validate")
+            return render_template('forms/new_show.html', form=form)
 
-  # on successful db insert, flash success
-  flash('Show was successfully listed!')
-  # TODO: on unsuccessful db insert, flash an error instead.
-  # e.g., flash('An error occurred. Show could not be listed.')
-  # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
-  return render_template('pages/home.html')
+        this_show = Show(
+                        artist_id=form.artist_id.data,
+                        venue_id=form.venue_id.data,
+                        start_time=form.start_time.data,
+        )
+
+        db.session.add(this_show)
+        db.session.commit()
+    except Exception as e:
+        error = True
+        db.session.rollback()
+        print(sys.exc_info())
+        print('Exception: ', e)
+    finally:
+        db.session.close()
+    if error:
+        flash('An error occurred. Show could not be listed.')
+        return render_template('forms/new_show.html', form=form)
+    else:
+        flash('Show was successfully listed!')
+    return render_template('pages/home.html')
+    # called to create new shows in the db, upon submitting new show listing form
+    # TODO: insert form data as a new Show record in the db, instead
+
+    # on successful db insert, flash success
+    # TODO: on unsuccessful db insert, flash an error instead.
+    # e.g., flash('An error occurred. Show could not be listed.')
+    # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
+
+
+# -----------------------------------------------------------------
+#  Error handlers
+#  ----------------------------------------------------------------
 
 
 @app.errorhandler(404)
@@ -710,9 +755,11 @@ if not app.debug:
     app.logger.addHandler(file_handler)
     app.logger.info('errors')
 
+
 """--------------------------------------------------------------------------#
 # Launch.
 #--------------------------------------------------------------------------"""
+
 
 # Default port:
 if __name__ == '__main__':

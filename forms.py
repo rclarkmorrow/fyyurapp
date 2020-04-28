@@ -11,7 +11,7 @@ from wtforms import (StringField, SelectField, SelectMultipleField,
                      HiddenField, ValidationError)
 from wtforms.validators import (DataRequired, AnyOf, URL, Optional, Length)
 from validate import Phone, ReduiredIfChecked, IsUnique, AnyOfMultiple
-from models import Venue, Artist
+from models import Venue, Artist, Show
 
 
 """--------------------------------------------------------------------------#
@@ -164,14 +164,20 @@ class ArtistForm(FlaskForm):
 
 
 class ShowForm(FlaskForm):
+    class Meta:
+        csrf = False
+
     artist_id = StringField(
-        'artist_id'
+        'artist_id',
+        validators=[DataRequired(message='The artist ID has a problem')] 
     )
     venue_id = StringField(
-        'venue_id'
+        'venue_id',
+        validators=[DataRequired(message='The venue ID has a problem.')]
+
     )
     start_time = DateTimeField(
         'start_time',
-        validators=[DataRequired()],
+        validators=[DataRequired(message='The time has a problem.')],
         default=datetime.today()
     )

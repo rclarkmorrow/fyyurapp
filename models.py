@@ -2,6 +2,8 @@
 # Imports
 #--------------------------------------------------------------------------"""
 
+
+import datetime
 from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
@@ -35,7 +37,6 @@ class Venue(db.Model):
     seeking_description = db.Column(db.String(500))
     image_link = db.Column(db.String(500), nullable=False, default=defaultImg)
 
-
 #  ----------------------------------------------------------------
 #  Artist model
 #  ----------------------------------------------------------------
@@ -58,11 +59,18 @@ class Artist(db.Model):
     seeking_description = db.Column(db.String(500))
     image_link = db.Column(db.String(500), nullable=False, default=defaultImg)
 
-
 #  ----------------------------------------------------------------
 #  Show model
 #  ----------------------------------------------------------------
 
 
-# TODO Implement Show and Artist models, and complete all model
-# relationships and properties, as a database migration.
+class Show(db.Model):
+    __tablename__ = 'Show'
+
+    id = db.Column(db.Integer, primary_key=True)
+    artist_id = db.Column(db.Integer, db.ForeignKey('Artist.id',
+                          ondelete='CASCADE'), nullable=False)
+    venue_id = db.Column(db.Integer, db.ForeignKey('Venue.id',
+                         ondelete='CASCADE'), nullable=False)
+    start_time = db.Column(db.DateTime, nullable=False,
+                           default=datetime.datetime.utcnow)
