@@ -149,19 +149,26 @@ def getShowCount(show_list, match_id, record_id):
 
 
 # This function returns results filtered by search terms.
-def getKeywordResults(table, column, search_term, match_id):
+def getKeywordResults(table, column, search_term, shows_match_id=None):
     time_now = datetime.now()
     search_result = []
+    num_upcoming_shows = None
     search_query = (table.query
                     .filter(column.ilike('%' + search_term + '%')).all()
                     )
-    show_query = Show.query.filter(Show.start_time > time_now).all()
+    if shows_match_id is not None:
+        show_query = Show.query.filter(Show.start_time > time_now).all()
+
     for result in search_query:
-        num_upcoming_shows = getShowCount(show_query, match_id, result.id)
+        if shows_match_id is not None:
+            num_upcoming_shows = getShowCount(show_query, shows_match_id,
+                                              result.id)
+
         search_result.append({
             "id": result.id,
             "name": result.name,
-            "num_upcoming_shows": num_upcoming_shows
+            **({"num_upcoming_shows": num_upcoming_shows}
+                if num_upcoming_shows is not None else{})
         })
     return({
         "count": len(search_query),
@@ -258,9 +265,11 @@ def search_venues():
     # Returns search results for venues on keyword match.
     error = False
     try:
-        search_term = request.form.get('search_term', '')
+        search_term = request.form.get('search_term', '').strip()
+        if search_term == '':
+            return redirect(url_for('venues'))
         response = getKeywordResults(Venue, Venue.name, search_term,
-                                     'venue_id')
+                                     shows_match_id='venue_id')
     except Exception as e:
         error = True
         print('Exception: ', e)
@@ -503,9 +512,10 @@ def search_artists():
     # Returns search results for venues on keyword match.
     error = False
     try:
-        search_term = request.form.get('search_term', '')
-        response = getKeywordResults(Artist, Artist.name, search_term,
-                                     'artist_id')
+        search_term = request.form.get('search_term', '').strip()
+        if search_term == '':
+            return redirect(url_for('artists'))
+        response = getKeywordResults(Artist, Artist.name, search_term)
     except Exception as e:
         error = True
         print('Exception: ', e)
@@ -513,7 +523,7 @@ def search_artists():
         db.session.close()
     if error is True:
         flash('An error occurred. Search could not be completed')
-        return redirect(url_for('venues'))
+        return redirect(url_for('artists'))
     else:
         return render_template('pages/search_venues.html', results=response,
                                search_term=request.form.get('search_term', ''))
@@ -835,9 +845,7 @@ def edit_show_submission(show_id):
 def delete_show(show_id):
     # Deletes a venue from the database.
     error = False
-    print("Show Delete Started")
     try:
-        print("Show Delete Try started")
         this_show = Show.query.get(show_id)
         this_show_id = this_show.id
         db.session.delete(this_show)
