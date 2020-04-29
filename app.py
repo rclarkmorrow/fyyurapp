@@ -3,7 +3,6 @@
 #--------------------------------------------------------------------------"""
 
 
-import sys
 import json
 import dateutil.parser
 import babel
@@ -69,14 +68,72 @@ def format_phone(form_phone):
         return form_phone
 
 
-#  This function returns a single record in Dict format and checks on whether
-#  it has a genres attribut that needs to be split into a list.
+#  This function returns a single record in Dict format for display.
 def getRecordAsDict(table, record_id):
+    time_now = datetime.now()
     this_record = table.query.get(record_id)
+
     if hasattr(this_record, 'genres'):
+        # Conditional that splits genres into a list, if record
+        # has the genres attribute.
         this_record.genres = this_record.genres.split(',')
+
     record_as_dict = this_record.__dict__
+
+    if hasattr(this_record, 'shows'):
+        # Conditional returns a list of shows, if record
+        # has the shows attribute (NOTE: shows is a DB relationsip).
+        shows = (getShows(this_record.shows, time_now))
+        record_as_dict.update(shows)
+
     return(record_as_dict)
+
+
+# This function loops a record's shows and structures data
+# as a list in the format needed for display. (e.g. a list of past
+# shows, a list of upcoming shows, and the show counts).
+def getShows(show_list, time_now):
+    upcoming_shows = []
+    past_shows = []
+
+    for show in show_list:
+        if show.start_time > time_now:
+            upcoming_shows.append({
+                'artist_id': show.artist.id,
+                'artist_name': show.artist.name,
+                'artist_image_link': show.artist.image_link,
+                'venue_id': show.venue.id,
+                'venue_name': show.venue.name,
+                'venue_image_link': show.venue.image_link,
+                'start_time': str(show.start_time)
+            })
+        else:
+            past_shows.append({
+                'artist_id': show.artist.id,
+                'artist_name': show.artist.name,
+                'artist_image_link': show.artist.image_link,
+                'venue_id': show.venue.id,
+                'venue_name': show.venue.name,
+                'venue_image_link': show.venue.image_link,
+                'start_time': str(show.start_time)
+            })
+
+    return ({
+        'past_shows': past_shows,
+        'upcoming_shows': upcoming_shows,
+        'past_shows_count': len(past_shows),
+        'upcoming_shows_count': len(upcoming_shows)
+    })
+
+
+# This function counts the number of shows for
+# a record that matches on the ID parameters.
+def getShowCount(show_list, match_id, record_id):
+    count = 0
+    for show in show_list:
+        if getattr(show, match_id) == record_id:
+            count += 1
+    return(count)
 
 
 #  ----------------------------------------------------------------
@@ -101,15 +158,20 @@ def index():
 def venues():
     # Lists venues ordered by city and state.
     error = False
-    # TODO num_shows should be aggregated based on number of upcoming
-    # shows per venue.
 
     try:
+        # Sets a single time as now for all time based logic
+        time_now = datetime.now()
+        # Single query gets necessary venue information to avoid multiple
+        # queries in loops.
         venue_query = (
             Venue.query.with_entities(Venue.id, Venue.name,
                                       Venue.city, Venue.state)
             .order_by(Venue.name).all()
         )
+        # Single query to return show all future show records to avoid multiple
+        # queries in loops.
+        show_query = Show.query.filter(Show.start_time > time_now).all()
 
         locations = sorted(list(set([(record.city, record.state) for record
                                 in venue_query])), key=lambda x: (x[1], x[0]))
@@ -117,14 +179,26 @@ def venues():
 
         for location in locations:
             location_venues = []
+
             for record in venue_query:
+
                 if record.city == location[0] and (record.state ==
                                                    location[1]):
-                    location_venues.append({'id': record.id,
-                                           'name': record.name})
-            venue_list.append({'city': location[0],
-                               'state': location[1],
-                               'venues': location_venues})
+
+                    num_shows = getShowCount(show_query, 'venue_id',
+                                             record.id)
+
+                    location_venues.append({
+                        'id': record.id,
+                        'name': record.name,
+                        'num_upcoming_shows': num_shows
+                    })
+
+            venue_list.append({
+                'city': location[0],
+                'state': location[1],
+                'venues': location_venues
+            })
     except Exception as e:
         error = True
         print(sys.exc_info())
@@ -186,24 +260,6 @@ def show_venue(venue_id):
         return render_template('pages/show_venue.html',
                                venue=this_venue)
 
-    #   "past_shows": [{
-    #     "artist_id": 5,
-    #     "artist_name": "Matt Quevedo",
-    #     "artist_image_link": "https://images.unsplash.com/photo-1495223153807-b916f75de8c5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=334&q=80",
-    #     "start_time": "2019-06-15T23:00:00.000Z"
-    #   }],
-    #   "upcoming_shows": [{
-    #     "artist_id": 6,
-    #     "artist_name": "The Wild Sax Band",
-    #     "artist_image_link": "https://images.unsplash.com/photo-1558369981-f9ca78462e61?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=794&q=80",
-    #     "start_time": "2035-04-01T20:00:00.000Z"
-    #   }, {
-    #     "artist_id": 6,
-    #     "artist_name": "The Wild Sax Band",
-    #     "artist_image_link": "https://images.unsplash.com/photo-1558369981-f9ca78462e61?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=794&q=80",
-    #     "start_time": "2035-04-08T20:00:00.000Z"
-    #   }
-
 
 #  Create venue
 #  ----------------------------------------------------------------
@@ -227,17 +283,17 @@ def create_venue_submission():
             return render_template('forms/new_venue.html', form=form)
 
         this_venue = Venue(
-                        name=form.name.data.strip(),
-                        genres=','.join(form.genres.data),
-                        city=form.city.data.strip(),
-                        state=form.state.data,
-                        address=form.address.data.strip(),
-                        phone=format_phone(form.phone.data),
-                        image_link=form.image_link.data,
-                        facebook_link=form.facebook_link.data,
-                        website=form.website.data,
-                        seeking_talent=form.seeking_talent.data,
-                        seeking_description=form.seeking_description.data
+            name=form.name.data.strip(),
+            genres=','.join(form.genres.data),
+            city=form.city.data.strip(),
+            state=form.state.data,
+            address=form.address.data.strip(),
+            phone=format_phone(form.phone.data),
+            image_link=form.image_link.data,
+            facebook_link=form.facebook_link.data,
+            website=form.website.data,
+            seeking_talent=form.seeking_talent.data,
+            seeking_description=form.seeking_description.data
         )
 
         db.session.add(this_venue)
@@ -245,7 +301,6 @@ def create_venue_submission():
     except Exception as e:
         error = True
         db.session.rollback()
-        print(sys.exc_info())
         print('Exception: ', e)
     finally:
         db.session.close()
@@ -271,7 +326,6 @@ def edit_venue(venue_id):
         this_venue = getRecordAsDict(Venue, venue_id)
     except Exception as e:
         error = True
-        print(sys.exc_info())
         print('Exception: ', e)
     finally:
         db.session.close()
@@ -323,7 +377,6 @@ def edit_venue_submission(venue_id):
     if error:
         flash('An error occurred. Venue ' + request.form['name'] +
               ' could not be edited.')
-        # return render_template('forms/edit_venue.html', form=form)
     else:
         flash('Venue ' + request.form['name'] + ' was successfully edited!')
     return redirect(url_for('show_venue', venue_id=venue_id))
@@ -452,25 +505,6 @@ def show_artist(artist_id):
         return render_template('pages/show_artist.html',
                                artist=this_artist)
 
-#     "past_shows": [{
-#       "venue_id": 1,
-#       "venue_name": "The Musical Hop",
-#       "venue_image_link": "https://images.unsplash.com/photo-1543900694-133f37abaaa5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=400&q=60",
-#       "start_time": "2019-05-21T21:30:00.000Z"
-#     }],
-#     "upcoming_shows": [{
-#       "venue_id": 3,
-#       "venue_name": "Park Square Live Music & Coffee",
-#       "venue_image_link": "https://images.unsplash.com/photo-1485686531765-ba63b07845a7?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=747&q=80",
-#       "start_time": "2035-04-01T20:00:00.000Z"
-#     }],
-#     "past_shows_count": 0,
-#     "upcoming_shows_count": 3,
-#   }
-
-#   data = list(filter(lambda d: d['id'] == artist_id, [data1, data2, data3]))[0]
-    return render_template('pages/show_artist.html', artist=this_artist)
-
 
 #  Create artist
 #  ----------------------------------------------------------------
@@ -494,16 +528,16 @@ def create_artist_submission():
             return render_template('forms/new_artist.html', form=form)
 
         this_artist = Artist(
-                        name=form.name.data.strip(),
-                        genres=','.join(form.genres.data),
-                        city=form.city.data.strip(),
-                        state=form.state.data,
-                        phone=format_phone(form.phone.data),
-                        image_link=form.image_link.data,
-                        facebook_link=form.facebook_link.data,
-                        website=form.website.data,
-                        seeking_venue=form.seeking_venue.data,
-                        seeking_description=form.seeking_description.data
+            name=form.name.data.strip(),
+            genres=','.join(form.genres.data),
+            city=form.city.data.strip(),
+            state=form.state.data,
+            phone=format_phone(form.phone.data),
+            image_link=form.image_link.data,
+            facebook_link=form.facebook_link.data,
+            website=form.website.data,
+            seeking_venue=form.seeking_venue.data,
+            seeking_description=form.seeking_description.data
         )
 
         db.session.add(this_artist)
@@ -721,13 +755,6 @@ def create_show_submission():
     else:
         flash('Show was successfully listed!')
     return render_template('pages/home.html')
-    # called to create new shows in the db, upon submitting new show listing form
-    # TODO: insert form data as a new Show record in the db, instead
-
-    # on successful db insert, flash success
-    # TODO: on unsuccessful db insert, flash an error instead.
-    # e.g., flash('An error occurred. Show could not be listed.')
-    # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
 
 
 # -----------------------------------------------------------------
