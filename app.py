@@ -201,7 +201,6 @@ def venues():
             })
     except Exception as e:
         error = True
-        print(sys.exc_info())
         print('Exception', e)
     finally:
         db.session.close()
@@ -248,7 +247,6 @@ def show_venue(venue_id):
         this_venue = getRecordAsDict(Venue, venue_id)
     except Exception as e:
         error = True
-        print(sys.exc_info())
         print('Exception: ', e)
     finally:
         db.session.close()
@@ -370,7 +368,6 @@ def edit_venue_submission(venue_id):
     except Exception as e:
         error = True
         db.session.rollback()
-        print(sys.exc_info())
         print('Exception: ', e)
     finally:
         db.session.close()
@@ -399,7 +396,6 @@ def delete_venue(venue_id):
     except Exception as e:
         error = True
         db.session.rollback()
-        print(sys.exc_info())
         print('Exception: ', e)
     finally:
         db.session.close()
@@ -445,7 +441,6 @@ def artists():
         artist_list = listArtists(artists_query)
     except Exception as e:
         error = True
-        print(sys.exc_info())
         print('Exception : ', e)
     finally:
         db.session.close()
@@ -493,7 +488,6 @@ def show_artist(artist_id):
         this_artist = getRecordAsDict(Artist, artist_id)
     except Exception as e:
         error = True
-        print(sys.exc_info())
         print('Exception: ', e)
     finally:
         db.session.close()
@@ -514,7 +508,6 @@ def show_artist(artist_id):
 def create_artist_form():
     # Renders the new artist form.
     form = ArtistForm()
-    print("artist page rendered")
     return render_template('forms/new_artist.html', form=form)
 
 
@@ -545,7 +538,6 @@ def create_artist_submission():
     except Exception as e:
         error = True
         db.session.rollback()
-        print(sys.exc_info())
         print('Exception: ', e)
     finally:
         db.session.close()
@@ -572,7 +564,6 @@ def edit_artist(artist_id):
         this_artist = getRecordAsDict(Artist, artist_id)
     except Exception as e:
         error = True
-        print(sys.exc_info())
         print('Exception: ', e)
     finally:
         db.session.close()
@@ -616,7 +607,6 @@ def edit_artist_submission(artist_id):
     except Exception as e:
         error = True
         db.session.rollback()
-        print(sys.exc_info())
         print('Exception ', e)
     finally:
         db.session.close()
@@ -645,7 +635,6 @@ def delete_artist(artist_id):
     except Exception as e:
         error = True
         db.session.rollback()
-        print(sys.exc_info())
         print('Exception: ', e)
     finally:
         db.session.close()
@@ -731,7 +720,6 @@ def create_show_submission():
     error = False
     try:
         if not form.validate():
-            print("New Show Not Validate")
             return render_template('forms/new_show.html', form=form)
 
         this_show = Show(
@@ -745,7 +733,6 @@ def create_show_submission():
     except Exception as e:
         error = True
         db.session.rollback()
-        print(sys.exc_info())
         print('Exception: ', e)
     finally:
         db.session.close()
