@@ -1,10 +1,17 @@
 {% extends 'layouts/main.html' %}
 {% block title %}Fyyur | Shows{% endblock %}
 {% block content %}
+
 <div class="row shows">
+    
     {%for show in shows %}
     <div class="col-sm-4">
         <div class="tile tile-show">
+            <p class="subtitle">
+                ID: {{ show.id }}
+			    <button type="button" class="edit-show" data-id="{{ show.id }}" ><i class="fas fa-edit edit-show" data-id="{{ show.id }}"></i></button>
+                <button type="button" class="delete-show" data-id="{{ show.id }}"><i class="fas fa-trash delete-show" data-id="{{ show.id }}"></i></button>
+		    </p>
             <img src="{{ show.artist_image_link }}" alt="Artist Image" />
             <h4>{{ show.start_time|datetime('full') }}</h4>
             <h5><a href="/artists/{{ show.artist_id }}">{{ show.artist_name }}</a></h5>
@@ -13,5 +20,35 @@
         </div>
     </div>
     {% endfor %}
+
 </div>
+<script>
+    document.body.addEventListener('click', (event) => {
+        console.log("global click");
+        console.log("Target ID: ", event.target.getAttribute('data-id'));
+        console.log(event.target.className);
+        if(event.target.className.includes('delete-show')) {
+            const SHOW_ID = event.target.getAttribute('data-id');
+            fetch( '/shows/' + SHOW_ID, {
+            method: 'DELETE',
+        }).then( response => {
+            if ( response.ok ) {
+            window.location.href='/shows';
+            console.log('delete reponse ok')
+            }
+            else {
+            window.location.href=`/shows`;
+            }
+        }).catch( error => {
+            window.location.href=`/`;
+        });
+        }
+
+        if (event.target.className.includes('edit-show')) {
+            const SHOW_ID = event.target.getAttribute('data-id');
+            window.location.href = `/shows/${SHOW_ID}/edit`;
+        }
+    })
+</script>
+
 {% endblock %}

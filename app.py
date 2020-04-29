@@ -126,6 +126,18 @@ def getShows(show_list, time_now):
     })
 
 
+# This function returns a list of all shows and returns it
+# to the controller for display in the view.
+def getShowList():
+    show_list = Show.query.all()
+    for show in show_list:
+        show.venue_name = show.venue.name
+        show.artist_name = show.artist.name
+        show.artist_image_link = show.artist.image_link
+        show.start_time = str(show.start_time)
+    return(show_list)
+
+  
 # This function counts the number of shows for
 # a record that matches on the ID parameters.
 def getShowCount(show_list, match_id, record_id):
@@ -401,11 +413,11 @@ def delete_venue(venue_id):
         db.session.close()
 
     if error:
-        flash('An error occurred. Venue ' + this_venue.name +
+        flash('An error occurred. Venue ' + this_venue_name +
               ' could not be deleted.')
         return jsonify(success=False), 500
     else:
-        flash('Venue ' + this_venue.name + ' was successfully deleted!')
+        flash('Venue ' + this_venue_name + ' was successfully deleted!')
 
     return jsonify(success=True), 200
 
@@ -640,11 +652,11 @@ def delete_artist(artist_id):
         db.session.close()
 
     if error:
-        flash('An error occurred. Artist ' + this_artist.name +
+        flash('An error occurred. Artist ' + this_artist_name +
               ' could not be deleted.')
         return jsonify(success=False), 500
     else:
-        flash('Artist ' + this_artist.name + ' was successfully deleted!')
+        flash('Artist ' + this_artist_name + ' was successfully deleted!')
 
     return jsonify(success=True), 200
 
@@ -660,46 +672,25 @@ def delete_artist(artist_id):
 
 @app.route('/shows')
 def shows():
-  # displays list of shows at /shows
-  # TODO: replace with real venues data.
-  #       num_shows should be aggregated based on number of upcoming shows per venue.
-  data=[{
-    "venue_id": 1,
-    "venue_name": "The Musical Hop",
-    "artist_id": 4,
-    "artist_name": "Guns N Petals",
-    "artist_image_link": "https://images.unsplash.com/photo-1549213783-8284d0336c4f?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=300&q=80",
-    "start_time": "2019-05-21T21:30:00.000Z"
-  }, {
-    "venue_id": 3,
-    "venue_name": "Park Square Live Music & Coffee",
-    "artist_id": 5,
-    "artist_name": "Matt Quevedo",
-    "artist_image_link": "https://images.unsplash.com/photo-1495223153807-b916f75de8c5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=334&q=80",
-    "start_time": "2019-06-15T23:00:00.000Z"
-  }, {
-    "venue_id": 3,
-    "venue_name": "Park Square Live Music & Coffee",
-    "artist_id": 6,
-    "artist_name": "The Wild Sax Band",
-    "artist_image_link": "https://images.unsplash.com/photo-1558369981-f9ca78462e61?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=794&q=80",
-    "start_time": "2035-04-01T20:00:00.000Z"
-  }, {
-    "venue_id": 3,
-    "venue_name": "Park Square Live Music & Coffee",
-    "artist_id": 6,
-    "artist_name": "The Wild Sax Band",
-    "artist_image_link": "https://images.unsplash.com/photo-1558369981-f9ca78462e61?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=794&q=80",
-    "start_time": "2035-04-08T20:00:00.000Z"
-  }, {
-    "venue_id": 3,
-    "venue_name": "Park Square Live Music & Coffee",
-    "artist_id": 6,
-    "artist_name": "The Wild Sax Band",
-    "artist_image_link": "https://images.unsplash.com/photo-1558369981-f9ca78462e61?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=794&q=80",
-    "start_time": "2035-04-15T20:00:00.000Z"
-  }]
-  return render_template('pages/shows.html', shows=data)
+    # displays list of shows at /shows
+    error = False
+
+    try:
+        show_list = getShowList()
+    except Exception as e:
+        error = True
+        print('Exception', e)
+    finally:
+        db.session.close()
+
+    if error:
+        flash('An error occured. Shows cannot be shown.')
+        return redirect(url_for('index'))
+    elif show_list == []:
+        flash('The Show table in the database is empty.')
+        return redirect(url_for('index'))
+    else:
+        return render_template('pages/shows.html', shows=show_list)
 
 
 #  Create show
@@ -742,6 +733,99 @@ def create_show_submission():
     else:
         flash('Show was successfully listed!')
     return render_template('pages/home.html')
+
+
+#  Edit show
+#  ----------------------------------------------------------------
+
+
+@app.route('/shows/<int:show_id>/edit', methods=['GET'])
+def edit_show(show_id):
+    # Populates form with show record from database.
+    error = False
+
+    try:
+        this_show = getRecordAsDict(Show, show_id)
+    except Exception as e:
+        error = True
+        print('Exception: ', e)
+    finally:
+        db.session.close()
+    if error is True:
+        flash('An error occurred. Venue with ID ' + str(show_id) +
+              ' could not be edited.')
+        # return redirect(url_for('show_venue', show_id=show_id))
+    else:
+        form = ShowForm(data=this_show)
+        return render_template('forms/edit_show.html', form=form,
+                               show=this_show)
+
+
+@app.route('/shows/<int:show_id>/edit', methods=['POST'])
+def edit_show_submission(show_id):
+    # Edits venue record in database.
+    form = ShowForm()
+    error = False
+
+    try:
+        this_show = Show.query.get(show_id)
+
+        if not form.validate():
+            return render_template('forms/edit_show.html', form=form,
+                                   show=this_show)
+
+        this_show.artist_id = form.artist_id.data
+        this_show.venue_id = form.venue_id.data
+        this_show.start_time = form.start_time.data
+
+        db.session.add(this_show)
+        db.session.commit()
+
+    except Exception as e:
+        error = True
+        db.session.rollback()
+        print('Exception: ', e)
+    finally:
+        db.session.close()
+    if error:
+        flash('An error occurred. Show with ID ' + str(show_id) +
+              ' could not be edited.')
+    else:
+        flash('Show with ID ' + str(show_id) + ' was successfully edited!')
+    return redirect(url_for('shows'))
+
+
+#  Delete show
+#  ----------------------------------------------------------------
+
+
+@app.route('/shows/<show_id>', methods=['DELETE'])
+def delete_show(show_id):
+    # Deletes a venue from the database.
+    error = False
+    print("Show Delete Started")
+    try:
+        print("Show Delete Try started")
+        this_show = Show.query.get(show_id)
+        this_show_id = this_show.id
+        db.session.delete(this_show)
+        db.session.commit()
+    except Exception as e:
+        error = True
+        db.session.rollback()
+        print('Exception: ', e)
+    finally:
+        db.session.close()
+
+    if error:
+        flash('An error occurred. Show with ID ' + str(this_show_id) +
+              ' could not be deleted.')
+        return jsonify(success=False), 500
+    else:
+        flash('Show with ID ' + str(this_show_id) +
+              ' was successfully deleted!')
+
+    return jsonify(success=True), 200
 
 
 # -----------------------------------------------------------------
