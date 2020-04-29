@@ -137,7 +137,7 @@ def getShowList():
         show.start_time = str(show.start_time)
     return(show_list)
 
-  
+
 # This function counts the number of shows for
 # a record that matches on the ID parameters.
 def getShowCount(show_list, match_id, record_id):
@@ -148,9 +148,31 @@ def getShowCount(show_list, match_id, record_id):
     return(count)
 
 
+# This function returns results filtered by search terms.
+def getKeywordResults(table, column, search_term, match_id):
+    time_now = datetime.now()
+    search_result = []
+    search_query = (table.query
+                    .filter(column.ilike('%' + search_term + '%')).all()
+                    )
+    show_query = Show.query.filter(Show.start_time > time_now).all()
+    for result in search_query:
+        num_upcoming_shows = getShowCount(show_query, match_id, result.id)
+        search_result.append({
+            "id": result.id,
+            "name": result.name,
+            "num_upcoming_shows": num_upcoming_shows
+        })
+    return({
+        "count": len(search_query),
+        "data": search_result
+    })
+
+
 #  ----------------------------------------------------------------
 #  Main
 #  ----------------------------------------------------------------
+
 
 @app.route('/')
 def index():
@@ -233,18 +255,23 @@ def venues():
 
 @app.route('/venues/search', methods=['POST'])
 def search_venues():
-  # TODO: implement search on artists with partial string search. Ensure it is case-insensitive.
-  # seach for Hop should return "The Musical Hop".
-  # search for "Music" should return "The Musical Hop" and "Park Square Live Music & Coffee"
-  response={
-    "count": 1,
-    "data": [{
-      "id": 2,
-      "name": "The Dueling Pianos Bar",
-      "num_upcoming_shows": 0,
-    }]
-  }
-  return render_template('pages/search_venues.html', results=response, search_term=request.form.get('search_term', ''))
+    # Returns search results for venues on keyword match.
+    error = False
+    try:
+        search_term = request.form.get('search_term', '')
+        response = getKeywordResults(Venue, Venue.name, search_term,
+                                     'venue_id')
+    except Exception as e:
+        error = True
+        print('Exception: ', e)
+    finally:
+        db.session.close()
+    if error is True:
+        flash('An error occurred. Search could not be completed')
+        return redirect(url_for('venues'))
+    else:
+        return render_template('pages/search_venues.html', results=response,
+                               search_term=request.form.get('search_term', ''))
 
 
 #  Show venue
@@ -473,18 +500,23 @@ def artists():
 
 @app.route('/artists/search', methods=['POST'])
 def search_artists():
-  # TODO: implement search on artists with partial string search. Ensure it is case-insensitive.
-  # seach for "A" should return "Guns N Petals", "Matt Quevado", and "The Wild Sax Band".
-  # search for "band" should return "The Wild Sax Band".
-  response={
-    "count": 1,
-    "data": [{
-      "id": 4,
-      "name": "Guns N Petals",
-      "num_upcoming_shows": 0,
-    }]
-  }
-  return render_template('pages/search_artists.html', results=response, search_term=request.form.get('search_term', ''))
+    # Returns search results for venues on keyword match.
+    error = False
+    try:
+        search_term = request.form.get('search_term', '')
+        response = getKeywordResults(Artist, Artist.name, search_term,
+                                     'artist_id')
+    except Exception as e:
+        error = True
+        print('Exception: ', e)
+    finally:
+        db.session.close()
+    if error is True:
+        flash('An error occurred. Search could not be completed')
+        return redirect(url_for('venues'))
+    else:
+        return render_template('pages/search_venues.html', results=response,
+                               search_term=request.form.get('search_term', ''))
 
 
 #  Show Artist
@@ -846,7 +878,8 @@ def server_error(error):
 if not app.debug:
     file_handler = FileHandler('error.log')
     file_handler.setFormatter(
-        Formatter('%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]')
+        Formatter('%(asctime)s %(levelname)s: %(message)s' +
+                  ' [in %(pathname)s:%(lineno)d]')
     )
     app.logger.setLevel(logging.INFO)
     file_handler.setLevel(logging.INFO)
