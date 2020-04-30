@@ -176,6 +176,37 @@ def getKeywordResults(table, column, search_term, shows_match_id=None):
     })
 
 
+def getRecentListings():
+    recent_artists = []
+    recent_venues = []
+    recent_artists_query = (
+        Artist.query
+        .order_by(Artist.id.desc()).limit(5).all()
+    )
+    recent_venues_query = (
+        Venue.query
+        .order_by(Venue.id.desc()).limit(5).all()
+    )
+    for artist in recent_artists_query:
+        recent_artists.append({
+            'id': artist.id,
+            'name': artist.name,
+            'image_link': artist.image_link
+        })
+    for venue in recent_venues_query:
+        recent_venues.append({
+            'id': venue.id,
+            'name': venue.name,
+            'image_link': venue.image_link
+        })
+    return ({
+        'artists': recent_artists,
+        'num_recent_artists': len(recent_artists_query),
+        'venues': recent_venues,
+        'num_recent_venues': len(recent_venues_query)
+    })
+
+
 #  ----------------------------------------------------------------
 #  Main
 #  ----------------------------------------------------------------
@@ -183,7 +214,29 @@ def getKeywordResults(table, column, search_term, shows_match_id=None):
 
 @app.route('/')
 def index():
-    return render_template('pages/home.html')
+    # Displays the home page
+    error = False
+    recent_listings = []
+
+    try:
+        recent_listings = getRecentListings()
+    except Exception as e:
+        error = True
+        print('Exception', e)
+    finally:
+        db.session.close()
+
+    if error:
+        flash('An error occured. Recent listings cannot be shown.')
+        return render_template('pages/home.html',
+                               recent_listings=recent_listings)
+    elif recent_listings == []:
+        flash('The does not contain any artists or venues.')
+        return render_template('pages/home.html',
+                               recent_listings=recent_listings)
+    else:
+        return render_template('pages/home.html',
+                               recent_listings=recent_listings)
 
 
 #  ----------------------------------------------------------------
@@ -199,7 +252,7 @@ def index():
 def venues():
     # Lists venues ordered by city and state.
     error = False
-
+    venue_list = []
     try:
         # Sets a single time as now for all time based logic
         time_now = datetime.now()
@@ -216,7 +269,6 @@ def venues():
 
         locations = sorted(list(set([(record.city, record.state) for record
                                 in venue_query])), key=lambda x: (x[1], x[0]))
-        venue_list = []
 
         for location in locations:
             location_venues = []
@@ -471,22 +523,17 @@ def delete_venue(venue_id):
 def artists():
     # Lists artist records in the database.
     error = False
+    artist_list = []
 
     try:
         artists_query = Artist.query.with_entities(Artist.id,
                                                    Artist.name).all()
 
-        def listArtists(artists_query):
-            artist_list = []
-
-            for record in artists_query:
-                artist_list.append({
-                  "id": record.id,
-                  "name": record.name,
-                })
-            return artist_list
-
-        artist_list = listArtists(artists_query)
+        for record in artists_query:
+            artist_list.append({
+                "id": record.id,
+                "name": record.name,
+            })
     except Exception as e:
         error = True
         print('Exception : ', e)

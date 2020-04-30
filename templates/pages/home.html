@@ -1,6 +1,7 @@
 {% extends 'layouts/main.html' %}
 {% block title %}Fyyur{% endblock %}
 {% block content %}
+
 <div class="row">
 	<div class="col-sm-6">
 		<h1>Fyyur 🔥</h1>
@@ -22,4 +23,33 @@
 		<img id="front-splash" src="{{ url_for('static',filename='img/front-splash.jpg') }}" alt="Front Photo of Musical Band" />
 	</div>
 </div>
+
+<section>
+	<h2 class="monospace">{{ recent_listings.num_recent_artists }} recently listed {% if recent_listings.num_recent_artists == 1 %}Artist{% else %}Artists{% endif %}</h2>
+	<div class="row listings">
+		{%for artist in recent_listings.artists %}
+		<div class="col-sm-4">
+			<div class="tile tile-listing">
+				<a href="/artists/{{ artist.id }}"><img src="{{ artist.image_link }}" alt="Show Artist Image" /></a>
+				<h4><a href="/artists/{{ artist.id }}">{{ artist.name }}</a></h4>
+			</div>
+		</div>
+		{% endfor %}
+	</div>
+</section>
+
+<section>
+	<h2 class="monospace">{{ recent_listings.num_recent_venues }} recently listed {% if recent_listings.num_recent_venues == 1 %}Venue{% else %}Venues{% endif %}</h2>
+	<div class="row listings">
+		{%for venue in recent_listings.venues %}
+		<div class="col-sm-4">
+			<div class="tile tile-listing">
+				<a href="/venues/{{ venue.id }}"><img src="{{ venue.image_link }}" alt="Show Venue Image" /></a>
+				<h4><a href="/venues/{{ venue.id }}">{{ venue.name }}</a></h4>
+			</div>
+		</div>
+		{% endfor %}
+	</div>
+</section>
+
 {% endblock %}

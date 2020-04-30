@@ -182,7 +182,10 @@ h2.monospace {
   opacity: 0.7;
 }
 .shows .tile-show {
-  height: 380px;
+  height: 385px;
+}
+.listings .tile-listing {
+  height: 260px;
 }
 .tile {
   text-align: center;
