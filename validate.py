@@ -3,6 +3,7 @@
 # --------------------------------------------------------------------------"""
 
 import re
+import datetime
 from wtforms import ValidationError
 from models import db
 
@@ -120,6 +121,31 @@ class RecordExists(object):
                     == check_field_value).first()
         )
         if record_query is None:
+            raise ValidationError(self.message)
+
+
+class DateInRange(object):
+    def __init__(self, start_time=None, end_time=None, message=None):
+        if not start_time:
+            date_string = '2010-01-01 00:00:00.000000'
+            start_time = datetime.datetime.strptime(date_string, '%Y-%m-%d %H:%M:%S.%f')
+        if not end_time:
+            date_string = '2030-12-31 23:59:59.999999'
+            end_time = datetime.datetime.strptime(date_string, '%Y-%m-%d %H:%M:%S.%f')
+        if not message:
+            message = (f'Please enter a date between ' + 
+                       f'{start_time.strftime("%m/%d/%Y, %H:%M:%S")} and ' +
+                       f'{end_time.strftime("%m/%d/%Y, %H:%M:%S")}.')
+
+        self.start_time = start_time
+        self.end_time = end_time
+        self.message = message
+
+    def __call__(self, form, field):
+        print(self.start_time)
+        print(self.end_time)
+        print(self.message)
+        if field.data < self.start_time or field.data > self.end_time:
             raise ValidationError(self.message)
 
 

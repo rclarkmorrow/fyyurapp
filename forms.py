@@ -11,7 +11,7 @@ from wtforms import (StringField, SelectField, SelectMultipleField,
                      HiddenField, IntegerField, ValidationError)
 from wtforms.validators import (DataRequired, AnyOf, URL, Optional, Length)
 from validate import (Phone, ReduiredIfChecked, IsUnique, AnyOfMultiple,
-                      RecordExists)
+                      RecordExists, DateInRange)
 from models import Venue, Artist, Show
 
 
@@ -183,6 +183,7 @@ class ShowForm(FlaskForm):
     )
     start_time = DateTimeField(
         'start_time',
-        validators=[DataRequired(message=validate.date_error)],
+        validators=[DataRequired(message=validate.date_error),
+                    DateInRange()],
         default=datetime.today()
     )

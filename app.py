@@ -408,7 +408,7 @@ def create_venue_submission():
         return render_template('forms/new_venue.html', form=form)
     else:
         flash('Venue ' + request.form['name'] + ' was successfully listed!')
-    return render_template('pages/home.html')
+    return redirect(url_for('index'))
 
 
 #  Edit venue
@@ -648,7 +648,7 @@ def create_artist_submission():
         return render_template('forms/new_artist.html', form=form)
     else:
         flash('Artist ' + request.form['name'] + ' was successfully listed!')
-    return render_template('pages/home.html')
+    return redirect(url_for('index'))
 
 
 #  Edit artist
@@ -821,7 +821,7 @@ def create_show_submission():
         return render_template('forms/new_show.html', form=form)
     else:
         flash('Show was successfully listed!')
-    return render_template('pages/home.html')
+    return redirect(url_for('index'))
 
 
 #  Edit show
