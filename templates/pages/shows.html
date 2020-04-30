@@ -12,7 +12,7 @@
 			    <button type="button" class="edit-show" data-id="{{ show.id }}" ><i class="fas fa-edit edit-show" data-id="{{ show.id }}"></i></button>
                 <button type="button" class="delete-show" data-id="{{ show.id }}"><i class="fas fa-trash delete-show" data-id="{{ show.id }}"></i></button>
 		    </p>
-            <img src="{{ show.artist_image_link }}" alt="Artist Image" />
+            <a href="/artists/{{ show.artist_id }}"><img src="{{ show.artist_image_link }}" alt="Artist Image" /></a>
             <h4>{{ show.start_time|datetime('full') }}</h4>
             <h5><a href="/artists/{{ show.artist_id }}">{{ show.artist_name }}</a></h5>
             <p>playing at</p>
