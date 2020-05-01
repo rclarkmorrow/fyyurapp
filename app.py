@@ -173,7 +173,7 @@ def getKeywordResults(table, column, search_term, shows_match_id=None):
                 if num_upcoming_shows is not None else{})
         })
     return({
-        "count": len(search_query),
+        "count": len(keyword_query),
         "data": search_result
     })
 
@@ -574,7 +574,7 @@ def search_artists():
         flash('An error occurred. Search could not be completed')
         return redirect(url_for('artists'))
     else:
-        return render_template('pages/search_venues.html', results=response,
+        return render_template('pages/search_artists.html', results=response,
                                search_term=request.form.get('search_term', ''))
 
 

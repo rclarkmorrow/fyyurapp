@@ -47,7 +47,7 @@ class AnyOfMultiple(object):
 
 
 class ReduiredIfChecked(object):
-    def __init__(self, check_box=None, message=None):
+    def __init__(self, check_box=None, check_field=None, message=None):
         self.check_box = check_box
         if not message:
             message = (f'This field is required if the box '
@@ -57,9 +57,29 @@ class ReduiredIfChecked(object):
     def __call__(self, form, field):
         # Requires base field to have data if specified check box is
         # true.
+
         check_box_value = form._fields.get(self.check_box)
 
         if check_box_value.data is True and field.data.strip() == '':
+            raise ValidationError(self.message)
+
+
+class RequiredIfFilled(object):
+    def __init__(self, check_field=None, message=None):
+        self.check_field = check_field
+        if not message:
+            message = (f'This field is required if the field '
+                       f'{check_field} is filled in.')
+        self.message = message
+
+    def __call__(self, form, field):
+        # Requires base field to have data if specified check field
+        # has data.
+
+        check_field_value = form._fields.get(self.check_field).data.strip()
+        print('try check field value: ', check_field_value)
+
+        if check_field_value != '' and field.data.strip() == '':
             raise ValidationError(self.message)
 
 
@@ -209,6 +229,7 @@ class DateAvailable(object):
             artist_query = Artist.query.get(artist_id)
             artist_start = artist_query.available_start
             artist_end = artist_query.available_end
+            artist_available = artist_query.seeking_venue
         else:
             raise Exception('')
 
@@ -217,6 +238,12 @@ class DateAvailable(object):
             this_date = stringToDateTime(field.data.strip())
         except ValueError:
             raise ValueError('')
+
+        # Verifies that the artist has indicated they are seeking venues.
+        if artist_available is not True:
+            raise ValidationError(
+                f'{artist_query.name} is not currently seeking shows.'
+            )
 
         # Verifies that the entered time is within artist's availability.
         if (this_date != '' and artist_start is not None and
@@ -294,11 +321,14 @@ venue_name_error = 'This venue name is already listed.'
 artist_name_error = 'This artist name is already listed.'
 artist_id_error = 'This artist ID is not listed.'
 venue_id_error = 'This venue ID is not listed.'
-date_error = 'Please enter a show time in YYYY-MM-DD HH:MM format.'
+date_error = 'Please enter a time in YYYY-MM-DD HH:MM format.'
+date_unfilled_error = 'Please enter both dates.'
+seeking_t_error = 'Availability is required if box is checked.'
 seeking_d_error = 'Please enter details below.'
 integer_error = 'Please enter a valid number.'
 end_date_error = 'End time must be after start time.'
 start_date_error = 'Start time must be before end time.'
+
 
 #  ----------------------------------------------------------------
 #  Enum data for restricted choices

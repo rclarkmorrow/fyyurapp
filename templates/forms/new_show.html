@@ -12,7 +12,7 @@
       <small>ID can be found on the Artist's Page</small>
       {{ form.artist_id(class_ = 'form-control', autofocus = true) }}
       {% if form.artist_id.errors %}
-      <span class="error" style="color:red;">{% for error in form.artist_id.errors %}{{error|safe}}{% endfor %}</span>
+      <span class="error" style="color:red;">{% for error in form.artist_id.errors %}{{error|safe}}<br />{% endfor %}</span>
       {% endif %}
     </div>
 
@@ -21,7 +21,7 @@
       <small>ID can be found on the Venue's Page</small>
       {{ form.venue_id(class_ = 'form-control', autofocus = true) }}
       {% if form.venue_id.errors %}
-      <span class="error" style="color:red;">{% for error in form.venue_id.errors %}{{error|safe}}{% endfor %}</span>
+      <span class="error" style="color:red;">{% for error in form.venue_id.errors %}{{error|safe}}<br />{% endfor %}</span>
       {% endif %}
     </div>
 
@@ -29,7 +29,7 @@
       <label for="start_time">Start Time</label>
       {{ form.start_time(class_ = 'form-control', placeholder='YYYY-MM-DD HH:MM:SS', autofocus = true) }}
       {% if form.start_time.errors %}
-      <span class="error" style="color:red;">{% for error in form.start_time.errors %}{{error|safe}}{% endfor %}</span>
+      <span class="error" style="color:red;">{% for error in form.start_time.errors %}{{error|safe}}<br />{% endfor %}</span>
       {% endif %}
     </div>
     
