@@ -61,6 +61,8 @@ class Artist(db.Model):
     seeking_venue = db.Column(db.Boolean, nullable=False, server_default='f')
     seeking_description = db.Column(db.String(500))
     image_link = db.Column(db.String(500), nullable=False, default=defaultImg)
+    available_start = db.Column(db.DateTime)
+    available_end = db.Column(db.DateTime)
     # Relationships
     shows = db.relationship('Show', back_populates='artist', lazy=True)
 

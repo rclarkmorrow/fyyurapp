@@ -11,7 +11,8 @@ from wtforms import (StringField, SelectField, SelectMultipleField,
                      HiddenField, IntegerField, ValidationError)
 from wtforms.validators import (DataRequired, AnyOf, URL, Optional, Length)
 from validate import (Phone, ReduiredIfChecked, IsUnique, AnyOfMultiple,
-                      RecordExists, DateInRange)
+                      RecordExists, DateInRange, ValidDateTime,
+                      CompareDate, DateAvailable, timeToString)
 from models import Venue, Artist, Show
 
 
@@ -154,8 +155,29 @@ class ArtistForm(FlaskForm):
     )
     seeking_description = TextAreaField(
         'seeking_description',
-        validators=[ReduiredIfChecked(check_box='seeking_venue'),
+        validators=[ReduiredIfChecked(check_box='seeking_venue',
+                    message=validate.seeking_d_error),
                     Length(max=500, message=validate.text_500_error)]
+    )
+    available_start = StringField(
+        'start_time',
+        validators=[ReduiredIfChecked(check_box='seeking_venue',
+                                      message=validate.date_error),
+                    ValidDateTime(),
+                    CompareDate(compare_date_field='available_end',
+                                operator='>',
+                                message=validate.start_date_error),
+                    DateInRange()]
+    )
+    available_end = StringField(
+        'start_time',
+        validators=[ReduiredIfChecked(check_box='seeking_venue',
+                                      message=validate.date_error),
+                    ValidDateTime(),
+                    CompareDate(compare_date_field='available_start',
+                                operator='<',
+                                message=validate.end_date_error),
+                    DateInRange()]
     )
 
 
@@ -181,9 +203,11 @@ class ShowForm(FlaskForm):
                                  message=validate.venue_id_error)]
 
     )
-    start_time = DateTimeField(
+    start_time = StringField(
         'start_time',
-        validators=[DataRequired(message=validate.date_error),
-                    DateInRange()],
-        default=datetime.today()
+        validators=[DataRequired(),
+                    ValidDateTime(),
+                    DateInRange(),
+                    DateAvailable()],
+        default=timeToString(datetime.today())
     )

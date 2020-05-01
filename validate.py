@@ -4,8 +4,8 @@
 
 import re
 import datetime
-from wtforms import ValidationError
-from models import db
+from wtforms import ValidationError, DateTimeField
+from models import db, Artist, Venue, Show
 
 """--------------------------------------------------------------------------#
 # Validators, error messages and enum choice restrictions
@@ -19,7 +19,7 @@ from models import db
 class Phone(object):
     def __init__(self, message=None):
         if not message:
-            message = ('Please enter a valid US phone number' +
+            message = ('Please enter a valid US phone number'
                        '<br />("123-456-7890 or "1234567890")')
         self.message = message
 
@@ -38,12 +38,10 @@ class AnyOfMultiple(object):
         self.message = message
 
     def __call__(self, form, field):
+
         # Checks each selection in a MultipleSelectField against
         # against values in passed choices list.
-
         for selection in field.data:
-            print(selection)
-            print(self.choices)
             if selection not in self.choices:
                 raise ValidationError(self.message)
 
@@ -52,7 +50,8 @@ class ReduiredIfChecked(object):
     def __init__(self, check_box=None, message=None):
         self.check_box = check_box
         if not message:
-            message = ('Please enter details below.')
+            message = (f'This field is required if the box '
+                       f'{check_box} is selected')
         self.message = message
 
     def __call__(self, form, field):
@@ -78,7 +77,7 @@ class IsUnique(object):
     def __call__(self, form, field):
         # Conditional validates required inputs, returns exception if not met
         if self.table is None or self.key is None or self.check_field is None:
-            raise Exception('Required paramaters not provided to verify ' +
+            raise Exception('Required paramaters not provided to verify '
                             'field is unique.')
 
         # Queries database for matching record with the table and column
@@ -112,41 +111,167 @@ class RecordExists(object):
 
     def __call__(self, form, field):
         if self.table is None or self.check_field is None:
-            raise Exception('The required parameters not provided ' +
+            raise Exception('The required parameters not provided '
                             'to verify record exists')
+
+        # Checks that the record with the ID entered in the field exists
+        # in the specified table.
         check_field_value = field.data
         record_query = (
             self.table.query
             .filter(getattr(self.table, self.check_field)
                     == check_field_value).first()
         )
+
         if record_query is None:
             raise ValidationError(self.message)
 
 
-class DateInRange(object):
-    def __init__(self, start_time=None, end_time=None, message=None):
-        if not start_time:
-            date_string = '2010-01-01 00:00:00.000000'
-            start_time = datetime.datetime.strptime(date_string, '%Y-%m-%d %H:%M:%S.%f')
-        if not end_time:
-            date_string = '2030-12-31 23:59:59.999999'
-            end_time = datetime.datetime.strptime(date_string, '%Y-%m-%d %H:%M:%S.%f')
+class CompareDate(object):
+    def __init__(self, compare_date_field=None, operator=None, message=None):
         if not message:
-            message = (f'Please enter a date between ' + 
-                       f'{start_time.strftime("%m/%d/%Y, %H:%M:%S")} and ' +
-                       f'{end_time.strftime("%m/%d/%Y, %H:%M:%S")}.')
+            if operator == '=':
+                message = ('The compared date fields are not equivalent.')
+            elif operator == '<':
+                message = ('The current date field is not before the '
+                           'compared date field.')
+            elif operator == '>':
+                message = ('The current date field is not after the '
+                           'compared date field.')
+            else:
+                raise Exception('Valid comparison operator not provided.')
 
-        self.start_time = start_time
-        self.end_time = end_time
+        self.message = message
+        self.compare_date_field = compare_date_field
+        self.operator = operator
+
+    def __call__(self, form, field):
+        try:
+            compare_date = stringToDateTime(form._fields.get(
+                self.compare_date_field).data.strip())
+            self_date = stringToDateTime(field.data.strip())
+        except ValueError:
+            raise ValueError('')
+
+        if (self.compare_date_field is not None and self.operator is not None
+                and compare_date is not None and self_date is not None):
+
+            # Compares date entered in date field to a date in specified
+            # date field with the specified operator.
+            if self.operator == '=':
+                if self_date != compare_date:
+                    raise ValidationError(self.message)
+
+            if self.operator == '<':
+                if self_date < compare_date:
+                    raise ValidationError(self.message)
+
+            if self.operator == '>':
+                if self_date > compare_date:
+                    raise ValidationError(self.message)
+
+
+class DateInRange(object):
+    def __init__(self, start_time='2010-01-01 00:00',
+                 end_time='2031-01-01 00:00', message=None):
+        try:
+            self.start_time = stringToDateTime(start_time)
+            self.end_time = stringToDateTime(end_time)
+        except ValueError:
+            raise Exception('Invalid start and end time parameters')
+
+        if not message:
+            message = ('Please enter a date between '
+                       f'{timeToString(self.start_time)} and '
+                       f'{timeToString(self.end_time)}.')
         self.message = message
 
     def __call__(self, form, field):
-        print(self.start_time)
-        print(self.end_time)
-        print(self.message)
-        if field.data < self.start_time or field.data > self.end_time:
-            raise ValidationError(self.message)
+        # Verifies that date entered in field falls between the default or
+        # specified time range.
+        if field.data.strip() != '':
+            try:
+                this_time = stringToDateTime(field.data.strip())
+            except ValueError:
+                raise ValueError('')
+            if this_time <= self.start_time or this_time >= self.end_time:
+                raise ValidationError(self.message)
+
+
+class DateAvailable(object):
+    def __init__(self, show_time_delta=2):
+        self.show_time_delta = show_time_delta
+
+    def __call__(self, form, field):
+        artist_id = int((form._fields.get('artist_id').data) or -1)
+
+        if artist_id > -1:
+            artist_query = Artist.query.get(artist_id)
+            artist_start = artist_query.available_start
+            artist_end = artist_query.available_end
+        else:
+            raise Exception('')
+
+        artist_shows = Show.query.filter(Show.artist_id == artist_id).all()
+        this_date = stringToDateTime(field.data.strip())
+
+        # Verifies that the entered time is within artist's availability.
+        if (this_date != '' and artist_start is not None and
+                artist_end is not None):
+            if this_date <= artist_start or this_date >= artist_end:
+                raise ValidationError(
+                    f'{artist_query.name} is available between '
+                    f'{timeToString(artist_start)} and '
+                    f'{timeToString(artist_end)}.'
+                )
+        # Verifies that the time is not too close to another booking.
+        # The default is two hours but can be set with the show_time_delta
+        # parameter.
+        for show in artist_shows:
+            show_delta = datetime.timedelta(hours=self.show_time_delta)
+            start_time = show.start_time - show_delta
+            end_time = show.start_time + show_delta
+            if this_date >= start_time and this_date <= end_time:
+                raise ValidationError(
+                    f'{artist_query.name} is already booked on '
+                    f'{show.venue.name} at {show.start_time} '
+                    f'please pick a time {self.show_delta} hours '
+                    'before or after that time.'
+                )
+
+
+class ValidDateTime(object):
+    def __init__(self, message=None):
+        if not message:
+            message = 'Please enter a time in YYYY-MM-DD HH:MM format'
+        self.message = message
+
+    def __call__(self, form, field):
+        # If date field is not an empty string or white space, checks that
+        # date entered in the field is formatted correctly (note uses the
+        # format specified in the stringToDateTime function).
+        if field.data.strip() != '':
+            try:
+                stringToDateTime(field.data.strip())
+            except ValueError:
+                raise ValidationError(self.message)
+
+
+#  ----------------------------------------------------------------
+#  Functions
+#  ----------------------------------------------------------------
+
+
+# Function converts input datetime string into datetime object.
+def stringToDateTime(date_string):
+    if date_string == '':
+        return None
+    return datetime.datetime.strptime(date_string.strip(), '%Y-%m-%d %H:%M')
+
+
+# Function converts datetime object to string.
+def timeToString(timestamp):
+    return datetime.datetime.strftime(timestamp, '%Y-%m-%d %H:%M')
 
 
 #  ----------------------------------------------------------------
@@ -156,9 +281,9 @@ class DateInRange(object):
 
 text_120_error = 'Can\'t be more than 120 characters'
 text_500_error = 'Can\'t be more than 500 characters'
-url_error = ('Please enter a valid URL.<br />("http://" or' +
+url_error = ('Please enter a valid URL.<br />("http://" or'
              ' "https://" is required)')
-fb_error = ('Please enter a valid facebook link.' +
+fb_error = ('Please enter a valid facebook link.'
             '<br />("http://" or "https://" is required)')
 state_error = 'Please select a valid state.'
 genres_error = 'Please select valid genres.'
@@ -166,8 +291,11 @@ venue_name_error = 'This venue name is already listed.'
 artist_name_error = 'This artist name is already listed.'
 artist_id_error = 'This artist ID is not listed.'
 venue_id_error = 'This venue ID is not listed.'
-date_error = 'Please enter a show time in YYYY-MM-DD HH:MM:SS format'
+date_error = 'Please enter a show time in YYYY-MM-DD HH:MM format.'
+seeking_d_error = 'Please enter details below.'
 integer_error = 'Please enter a valid number.'
+end_date_error = 'End time must be after start time.'
+start_date_error = 'Start time must be before end time.'
 
 #  ----------------------------------------------------------------
 #  Enum data for restricted choices

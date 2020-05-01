@@ -6,6 +6,7 @@
 import json
 import dateutil.parser
 import babel
+import datetime
 from flask import (Flask, render_template, request, Response, flash,
                    redirect, url_for, jsonify)
 from flask_moment import Moment
@@ -16,6 +17,7 @@ from logging import Formatter, FileHandler
 from flask_wtf import Form
 from forms import *
 from models import db, Venue, Artist
+from validate import stringToDateTime
 
 
 """--------------------------------------------------------------------------#
@@ -153,13 +155,13 @@ def getKeywordResults(table, column, search_term, shows_match_id=None):
     time_now = datetime.now()
     search_result = []
     num_upcoming_shows = None
-    search_query = (table.query
-                    .filter(column.ilike('%' + search_term + '%')).all()
-                    )
+    keyword_query = (table.query
+                     .filter(column.ilike('%' + search_term + '%')).all()
+                     )
     if shows_match_id is not None:
         show_query = Show.query.filter(Show.start_time > time_now).all()
 
-    for result in search_query:
+    for result in keyword_query:
         if shows_match_id is not None:
             num_upcoming_shows = getShowCount(show_query, shows_match_id,
                                               result.id)
@@ -631,7 +633,11 @@ def create_artist_submission():
             facebook_link=form.facebook_link.data,
             website=form.website.data,
             seeking_venue=form.seeking_venue.data,
-            seeking_description=form.seeking_description.data
+            seeking_description=form.seeking_description.data,
+            available_start=validate.stringToDateTime(
+                form.available_start.data.strip()),
+            available_end=validate.stringToDateTime(
+                form.available_end.data.strip())
         )
 
         db.session.add(this_artist)
@@ -701,6 +707,10 @@ def edit_artist_submission(artist_id):
         this_artist.website = form.website.data
         this_artist.seeking_venue = form.seeking_venue.data
         this_artist.seeking_description = form.seeking_description.data
+        this_artist.available_start = validate.stringToDateTime(
+            form.available_start.data.strip())
+        this_artist.available_end = validate.stringToDateTime(
+            form.available_end.data.strip())
 
         db.session.add(this_artist)
         db.session.commit()
@@ -803,9 +813,9 @@ def create_show_submission():
             return render_template('forms/new_show.html', form=form)
 
         this_show = Show(
-                        artist_id=form.artist_id.data,
-                        venue_id=form.venue_id.data,
-                        start_time=form.start_time.data,
+            artist_id=form.artist_id.data,
+            venue_id=form.venue_id.data,
+            start_time=validate.stringToDateTime(form.start_time.data.strip())
         )
 
         db.session.add(this_show)
@@ -865,7 +875,8 @@ def edit_show_submission(show_id):
 
         this_show.artist_id = form.artist_id.data
         this_show.venue_id = form.venue_id.data
-        this_show.start_time = form.start_time.data
+        this_show.start_time = validate.stringToDateTime(
+            form.start_time.data.strip())
 
         db.session.add(this_show)
         db.session.commit()
