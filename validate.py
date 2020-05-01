@@ -213,7 +213,10 @@ class DateAvailable(object):
             raise Exception('')
 
         artist_shows = Show.query.filter(Show.artist_id == artist_id).all()
-        this_date = stringToDateTime(field.data.strip())
+        try:
+            this_date = stringToDateTime(field.data.strip())
+        except ValueError:
+            raise ValueError('')
 
         # Verifies that the entered time is within artist's availability.
         if (this_date != '' and artist_start is not None and
