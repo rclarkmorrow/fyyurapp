@@ -1,3 +1,26 @@
+### Comments
+
+This is a project completed (if anything is ever complete) for Udacity's Full Stack Nanodegree program. You can test it out by downloading or cloning the repository and following these steps:
+
+* Recommended: set up a Python virtual environment. If you need a refresher [instructions are here](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/).
+* Install dependencies:
+***
+$ python3 -m pip install -r requirements.txt
+***
+* Update the dbURI variable in config.py to a database of your choice.
+* Perform a database initialization, migration and upgrade from the base directory:
+***
+$ flask db init
+$ flask db migrate
+$ flask db upgrade
+***
+* Run flask:
+***
+$ FLASK_APP=app.py flask run
+***
+
+
+
 Fyyur
 -----
 
